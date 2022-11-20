@@ -6,11 +6,14 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-from unittest import TestCase
+import os
+from unittest import TestCase, skipIf
 
 from mo_files import File
 
 from mo_streams import stream
+
+IS_TRAVIS = bool(os.environ.get("TRAVIS"))
 
 
 class TestStream(TestCase):
@@ -24,6 +27,7 @@ class TestStream(TestCase):
         result = file.content().utf8().to_str()
         self.assertEqual(result, "this is a test")
 
+    @skipIf(IS_TRAVIS)
     def test_tar(self):
         file = File("tests/resources/so_queries.tar.zst")
         content = file.content().content().exists().utf8().to_str().to_list()
