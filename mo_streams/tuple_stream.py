@@ -9,7 +9,6 @@
 from typing import Any, Tuple, Type, Iterator
 
 from mo_dots.lists import Log
-from mo_logs import Log
 
 from mo_streams import ByteStream, EmptyStream
 from mo_streams.object_stream import ObjectStream

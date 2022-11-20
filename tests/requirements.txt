@@ -1,1 +1,3 @@
 mo-files
+mo-logs
+zstandard
