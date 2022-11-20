@@ -1,0 +1,15 @@
+/build
+/dist
+/pyDots.egg-info
+/README.txt
+/tests/MoLogs
+/tests/pyLibrary
+/pyLibrary
+/mo_dots.egg-info
+/mo_dots/*.pyc
+/.coverage
+/tests/*.pyc
+.svn
+.idea
+__pycache__
+/tests/resources
