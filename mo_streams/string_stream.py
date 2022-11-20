@@ -10,7 +10,7 @@
 from mo_dots.lists import Log
 
 from mo_streams import ObjectStream
-from mo_streams.object import MethodStream
+from mo_streams.object_stream import MethodStream
 from mo_streams.byte_stream import ByteStream
 
 

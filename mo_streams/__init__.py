@@ -11,8 +11,8 @@ from mo_dots.lists import is_many
 from mo_future import first
 
 from mo_streams.byte_stream import ByteStream
-from mo_streams.empty import EmptyStream
-from mo_streams.object import ObjectStream
+from mo_streams.empty_stream import EmptyStream
+from mo_streams.object_stream import ObjectStream
 from mo_streams.string_stream import StringStream
 
 

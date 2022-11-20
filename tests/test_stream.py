@@ -22,9 +22,7 @@ class TestStream(TestCase):
     def test_zst(self):
         tempfile = File("tests/resources/test.zst")
         stream("this is a test").utf8().zst().write(tempfile)
-
         result = tempfile.content().utf8().to_str()
-
         self.assertEqual(result, "this is a test")
 
     def test_tar(self):
@@ -33,4 +31,5 @@ class TestStream(TestCase):
         self.assertEqual(len(content), 6191)
 
     def test_zip(self):
+
         pass # File("tests").leaves()
