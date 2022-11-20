@@ -6,12 +6,9 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-from io import BytesIO, BufferedReader
-from typing import Tuple, BinaryIO
+from typing import BinaryIO
 
 from mo_dots.lists import Log
-from mo_files import File
-from mo_future import get_function_name
 from mo_imports import delay_import
 
 ByteStream = delay_import("mo_streams.byte_stream.ByteStream")
@@ -19,6 +16,9 @@ TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 
 
 class Reader(BinaryIO):
+    """
+    WRAP A GENERATOR WITH A FILE-LIKE OBJECT
+    """
     def __init__(self, chunks):
         self._chunks = chunks
         self.residue = b""
@@ -35,7 +35,8 @@ class Reader(BinaryIO):
                 return data
 
             while len(self.residue) < size:
-                self.residue += next(self._chunks)
+                chunk = next(self._chunks)
+                self.residue += chunk
         except StopIteration:
             self._chunks = None
         return self._more(size)
@@ -55,12 +56,21 @@ class Reader(BinaryIO):
         self.read(position-self.count)
 
 
+def chunk_bytes(reader, size=4096):
+    """
+    WRAP A FILE-LIKE OBJECT TO LOOK LIKE A GENERATOR
+    """
 
-def chunk_bytes(stream, size=4096):
+    if isinstance(reader, Reader):
+        return reader._chunks
+
     def read():
+        """
+        :return:
+        """
         try:
             while True:
-                data = stream.read(size)
+                data = reader.read(size)
                 if not data:
                     return
                 yield data
@@ -68,28 +78,17 @@ def chunk_bytes(stream, size=4096):
             Log.error("Problem iterating through stream", cause=e)
         finally:
             try:
-                stream.close()
+                reader.close()
             except Exception as cause:
                 pass
 
     return read()
 
 
-def extend(cls):
+class File_usingStream:
     """
-    DECORATOR TO ADD METHODS TO CLASSES
-    :param cls: THE CLASS TO ADD THE METHOD TO
-    :return:
+    A File USING A BORROW STREAM.  FOR USE IN TAR AND ZIP FILES
     """
-
-    def extender(func):
-        setattr(cls, get_function_name(func), func)
-        return func
-
-    return extender
-
-
-class StreamFile:
 
     def __init__(self, name, content):
         self.name = name
@@ -97,28 +96,3 @@ class StreamFile:
 
     def content(self):
         return self._content()
-
-
-@extend(File)
-def content(self):
-    if self.extension == "zst":
-        import zstandard
-
-        stream_reader = (
-            zstandard
-            .ZstdDecompressor(max_window_size=2147483648)
-            .stream_reader(Reader(chunk_bytes(BufferedReader(open(self.abspath, "rb")))))
-        )
-        return ByteStream(chunk_bytes(stream_reader))
-    if self.extension == "zip":
-        import zipfile
-
-        archive = zipfile.ZipFile(open(self.abspath, "rb"), mode="r")
-        names = archive.namelist()
-        return TupleStream(
-            ((ByteStream(chunk_bytes(BufferedReader(archive.open(name, "r")))), name) for name in names),
-            (ByteStream(BytesIO(b"")), ""),
-            Tuple[ByteStream, str],
-        )
-
-    return ByteStream(chunk_bytes(BufferedReader(open(self.abspath, "rb"))))

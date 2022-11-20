@@ -20,16 +20,17 @@ class TestStream(TestCase):
         self.assertEquals(result, b"this is a test")
 
     def test_zst(self):
-        tempfile = File("tests/resources/test.zst")
-        stream("this is a test").utf8().zst().write(tempfile)
-        result = tempfile.content().utf8().to_str()
+        file = File("tests/resources/test.zst")
+        stream("this is a test").utf8().to_zst().write(file)
+        result = file.content().utf8().to_str()
         self.assertEqual(result, "this is a test")
 
     def test_tar(self):
-        tempfile = File("tests/resources/so_queries.tar.zst")
-        content = tempfile.content().tar().content().exists().utf8().to_str().to_list()
+        file = File("tests/resources/so_queries.tar.zst")
+        content = file.content().content().exists().utf8().to_str().to_list()
         self.assertEqual(len(content), 6191)
 
     def test_zip(self):
-
-        pass # File("tests").leaves()
+        file = File("tests/resources/example.zip")
+        content = file.content().name.to_list()
+        self.assertEqual(content, ["LICENSE", "README.md"])

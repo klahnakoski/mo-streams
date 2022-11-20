@@ -1,3 +1,8 @@
+from typing import Iterator, Tuple, Any, Type
+
+from mo_logs import Log
+
+from mo_streams.object_stream import MethodStream, ObjectStream
 
 
 class TupleStream:

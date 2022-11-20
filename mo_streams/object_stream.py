@@ -9,9 +9,12 @@
 from typing import Any, Tuple, Type, Iterator
 
 from mo_dots.lists import Log
+from mo_imports import delay_import
 
-from mo_streams import ByteStream
-from mo_streams.tuple_stream import TupleStream
+from mo_streams import ByteStream, EmptyStream
+from mo_streams.utils import Reader
+
+TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 
 
 class ObjectStream:
@@ -25,15 +28,29 @@ class ObjectStream:
             Log.error("ambigious")
 
         accessor = getattr(self._example, item)
-        method = getattr(self._type, item)
-        if type(method).__name__ in {"method_descriptor", "function"}:
-            return MethodStream(
-                (getattr(v, item) for v in self._iter), accessor, type(accessor)
-            )
-        else:
-            return ObjectStream(
-                (getattr(v, item) for v in self._iter), accessor, type(accessor)
-            )
+        def read():
+            for v in self._iter:
+                try:
+                    yield getattr(v, item)
+                except Exception:
+                    yield None
+
+        return ObjectStream(read(), accessor, type(accessor))
+
+    def __call__(self, *args, **kwargs):
+        example = self._example(*args, **kwargs)
+
+        def read():
+            for m in self._iter:
+                try:
+                    yield m(*args, **kwargs)
+                except Exception:
+                    yield None
+
+        if isinstance(example, bytes):
+            return ByteStream(Reader(read()))
+
+        return ObjectStream(read(), example, type(example))
 
     def map(self, accessor):
         if isinstance(accessor, str):
@@ -59,11 +76,11 @@ class ObjectStream:
 
         return ObjectStream(read(), example, type(example))
 
-    def to_list(self):
-        return list(self._iter)
-
     def enumerate(self):
         return TupleStream(((v, i) for i, v in enumerate(self._iter)), Tuple[int, self._type])
+
+    def to_list(self):
+        return list(self._iter)
 
 
 

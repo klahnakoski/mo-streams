@@ -10,8 +10,8 @@
 from mo_dots.lists import Log
 
 from mo_streams import ObjectStream
-from mo_streams.object_stream import MethodStream
 from mo_streams.byte_stream import ByteStream
+from mo_streams.utils import Reader
 
 
 class StringStream:
@@ -23,18 +23,12 @@ class StringStream:
             Log.error("ambigious")
 
         accessor = getattr("", item)
-        method = getattr(str, item)
-        if type(method).__name__ == "method_descriptor":
-            return MethodStream(
-                (getattr(v, item) for v in self._chunks), accessor, type(accessor)
-            )
-        else:
-            return ObjectStream(
-                (getattr(v, item) for v in self._chunks), accessor, type(accessor)
-            )
+        return ObjectStream(
+            (getattr(v, item) for v in self._chunks), accessor, type(accessor)
+        )
 
     def utf8(self):
-        return ByteStream((chunk.encode("utf8") for chunk in self._chunks))
+        return ByteStream(Reader((c.encode("utf8") for c in self._chunks)))
 
     def lines(self):
         def read():
