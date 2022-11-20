@@ -18,6 +18,10 @@ TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 
 
 class ObjectStream:
+    """
+    A STREAM OF OBJECTS
+    """
+
     def __init__(self, values, example, datatype):
         self._iter: Iterator[Any] = values
         self._example = example
@@ -77,7 +81,7 @@ class ObjectStream:
         return ObjectStream(read(), example, type(example))
 
     def enumerate(self):
-        return TupleStream(((v, i) for i, v in enumerate(self._iter)), Tuple[int, self._type])
+        return TupleStream(((v, i) for i, v in enumerate(self._iter)), self._example, self._type)
 
     def to_list(self):
         return list(self._iter)

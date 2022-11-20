@@ -9,9 +9,20 @@
 
 
 class EmptyStream:
-
     def __getattr__(self, item):
         return self
 
     def __call__(self, *args, **kwargs):
         return self
+
+    def to_dict(self):
+        return {}
+
+    def to_list(self):
+        return []
+
+    def to_bytes(self):
+        return b""
+
+    def to_str(self):
+        return ""

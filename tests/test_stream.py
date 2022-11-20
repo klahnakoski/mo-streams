@@ -14,7 +14,6 @@ from mo_streams import stream
 
 
 class TestStream(TestCase):
-
     def test_encode(self):
         result = stream("this is a test").encode("utf8").to_bytes()
         self.assertEquals(result, b"this is a test")
@@ -34,3 +33,8 @@ class TestStream(TestCase):
         file = File("tests/resources/example.zip")
         content = file.content().name.to_list()
         self.assertEqual(content, ["LICENSE", "README.md"])
+
+    def test_dict_zip(self):
+        values = ["a", "b", "c"]
+        result = stream(values).enumerate().to_dict()
+        self.assertEqual(result, {0: "a", 1: "b", 2: "c"})
