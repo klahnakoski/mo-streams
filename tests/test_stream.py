@@ -27,7 +27,7 @@ class TestStream(TestCase):
         result = file.content().utf8().to_str()
         self.assertEqual(result, "this is a test")
 
-    @skipIf(IS_TRAVIS)
+    @skipIf(IS_TRAVIS, "file not repo")
     def test_tar(self):
         file = File("tests/resources/so_queries.tar.zst")
         content = file.content().content().exists().utf8().to_str().to_list()

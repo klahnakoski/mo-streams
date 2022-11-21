@@ -6,6 +6,7 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
+import os
 from typing import BinaryIO
 
 from mo_dots.lists import Log
@@ -96,3 +97,14 @@ class File_usingStream:
 
     def content(self):
         return self._content()
+
+
+def os_path(path):
+    """
+    :return: OS-specific path
+    """
+    if path == None:
+        return None
+    if os.sep == "/":
+        return path
+    return str(path).lstrip("/")

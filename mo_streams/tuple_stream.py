@@ -21,6 +21,7 @@ class TupleStream:
 
     ASSUME TRANSFORMATIONS ARE DONE ON value, LEAVING THE REST UNCHANGED TO TAG ALONG
     """
+
     def __init__(self, tuples, example, datatype):
         self._iter: Iterator[Tuple[Any]] = tuples
         self._example = example
@@ -33,11 +34,11 @@ class TupleStream:
         accessor = getattr(self._example, item)
 
         def read():
-            for v, *r in self._iter:
+            for tup in self._iter:
                 try:
-                    yield getattr(v, item), *r
+                    yield (getattr(tup[0], item),) + tup[1:]
                 except Exception:
-                    yield None, *r
+                    yield (None,) + tup[1:]
 
         return TupleStream(read(), accessor, type(accessor))
 
@@ -45,11 +46,11 @@ class TupleStream:
         example = self._example(*args, **kwargs)
 
         def read():
-            for m, *r in self._iter:
+            for tup in self._iter:
                 try:
-                    yield m(*args, **kwargs), *r
+                    yield (tup[0](*args, **kwargs),) + tup[1:]
                 except Exception:
-                    yield None, *r
+                    yield (None,) + tup[1:]
 
         if isinstance(example, bytes):
             return ByteStream(Reader(read()))
@@ -58,32 +59,31 @@ class TupleStream:
 
     def map(self, accessor):
         def read():
-            for v, *r in self._iter:
+            for tup in self._iter:
                 try:
-                    new_value = accessor(v)
-                    yield new_value, *r
+                    new_value = accessor(tup[0])
+                    yield (new_value,) + tup[1:]
                 except Exception:
-                    yield None, *r
+                    yield (None,) + tup[1:]
 
         example = accessor(self._example)
         return TupleStream(read(), example, type(example))
 
     def exists(self):
-        first_value = None
-        rest = None
-        while first_value == None:
+        tup = (None,)
+        while tup[0] == None:
             try:
-                first_value, *rest = next(self._iter)
+                tup = next(self._iter)
             except StopIteration:
                 return EmptyStream()
 
-        def read(value, *r):
-            yield value, *r
-            for v, *r in self._iter:
-                if v != None:
-                    yield v, *r
+        def read(tup):
+            yield tup
+            for tup in self._iter:
+                if tup[0] != None:
+                    yield tup
 
-        return TupleStream(read(first_value, *rest), first_value, type(first_value))
+        return TupleStream(read(*tup), tup[0], type(tup[0]))
 
     def to_dict(self):
-        return {k: v for v, k, *r in self._iter}
+        return {tup[1]: tup[0] for tup in self._iter}

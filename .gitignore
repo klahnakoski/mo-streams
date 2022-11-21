@@ -13,3 +13,4 @@
 .idea
 __pycache__
 /tests/resources
+*.egg-info
