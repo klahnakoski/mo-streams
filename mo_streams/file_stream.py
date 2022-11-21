@@ -11,8 +11,7 @@ from mo_files import File
 from mo_future import get_function_name
 
 from mo_streams import ByteStream
-
-
+from mo_streams.utils import os_path
 
 DECODERS = {
     "zst": ByteStream.from_zst,
@@ -51,7 +50,7 @@ def _extend(cls):
 
 @_extend(File)
 def content(self):
-    return _get_file_stream(self.abspath, ByteStream(open(self.abspath, "rb")))
+    return _get_file_stream(self.abspath, ByteStream(open(os_path(self), "rb")))
 
 
 def _get_extension(file_name):

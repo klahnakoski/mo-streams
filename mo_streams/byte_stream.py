@@ -11,7 +11,7 @@ from io import BytesIO
 from mo_files import File
 from mo_imports import delay_import
 
-from mo_streams.utils import chunk_bytes, File_usingStream
+from mo_streams.utils import chunk_bytes, File_usingStream, os_path
 
 StringStream = delay_import("mo_streams.string_stream.StringStream")
 ObjectStream = delay_import("mo_streams.object_stream.ObjectStream")
@@ -101,7 +101,7 @@ class ByteStream:
 
     def write(self, file):
         file = File(file)
-        with open(file.abspath, "wb") as f:
+        with open(os_path(file), "wb") as f:
             for d in chunk_bytes(self.reader):
                 f.write(d)
 
