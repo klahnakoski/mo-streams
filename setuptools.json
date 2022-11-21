@@ -29,6 +29,6 @@
     "name": "mo-streamss",
     "packages": ["mo_streamss"],
     "url": "https://github.com/klahnakoski/mo-streams",
-    "version": "0.1.22325",
+    "version": "0.2.22325",
     "zip_safe": false
 }
