@@ -42,3 +42,5 @@ class TestStream(TestCase):
         values = ["a", "b", "c"]
         result = stream(values).enumerate().to_dict()
         self.assertEqual(result, {0: "a", 1: "b", 2: "c"})
+
+

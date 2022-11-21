@@ -12,7 +12,7 @@ from mo_future import first
 
 from mo_streams.byte_stream import ByteStream
 from mo_streams.empty_stream import EmptyStream
-from mo_streams.file_stream import content
+from mo_streams.files import content
 from mo_streams.object_stream import ObjectStream
 from mo_streams.string_stream import StringStream
 from mo_streams.tuple_stream import TupleStream
