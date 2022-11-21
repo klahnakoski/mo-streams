@@ -13,8 +13,8 @@ setup(
     license='MPL 2.0',
     long_description='# More Streams\n\nCan code be more elegant with method chaining?\n\n',
     long_description_content_type='text/markdown',
-    name='mo-streamss',
-    packages=["mo_streamss"],
+    name='mo-streams',
+    packages=["mo_streams"],
     url='https://github.com/klahnakoski/mo-streams',
     version='0.2.22325',
     zip_safe=False
