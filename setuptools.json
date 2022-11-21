@@ -11,17 +11,24 @@
         "Programming Language :: Python :: 3.9"
     ],
     "description": "More Streams! Chained function calls",
-    "extras_require": {"tests": [
-                 "mo-logs",          "mo-json",       "mo-threads",       "mo-testing",
-               "pyLibrary",          "mo-math",         "mo-times", "jx-elasticsearch"
-    ]},
+    "extras_require": {"tests": ["mo-files", "mo-logs", "zstandard"]},
     "include_package_data": true,
-    "install_requires": ["mo-future==6.230.22310", "mo-imports==7.251.22317"],
+    "install_requires": ["mo-dots", "mo-future==6.230.22310"],
     "license": "MPL 2.0",
+    "long_description": {
+        "$concat": [
+            "# More Streams",
+            "",
+            "Can code be more elegant with method chaining?",
+            "",
+            ""
+        ],
+        "separator": "\n"
+    },
     "long_description_content_type": "text/markdown",
     "name": "mo-streamss",
     "packages": ["mo_streamss"],
     "url": "https://github.com/klahnakoski/mo-streams",
-    "version": "0.0.0",
+    "version": "0.1.22325",
     "zip_safe": false
 }
