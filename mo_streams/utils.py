@@ -21,6 +21,7 @@ class Reader(BinaryIO):
     """
     WRAP A GENERATOR WITH A FILE-LIKE OBJECT
     """
+
     def __init__(self, chunks):
         self._chunks = chunks
         self.residue = b""
@@ -55,15 +56,16 @@ class Reader(BinaryIO):
     def seek(self, position):
         if self.count > position:
             raise NotImplementedError()
-        self.read(position-self.count)
+        self.read(position - self.count)
 
 
 class Writer(RawIOBase):
     """
     REPLACE IO SO THAT WE CAN read() THE RESULTING
     """
+
     def __init__(self):
-        self._buffer = b''
+        self._buffer = b""
 
     def writable(self):
         return True
@@ -76,7 +78,7 @@ class Writer(RawIOBase):
 
     def read(self, size=-1):
         chunk = self._buffer
-        self._buffer = b''
+        self._buffer = b""
         return chunk
 
     def size(self):
@@ -134,5 +136,5 @@ def os_path(path):
     if path == None:
         return None
     if os.sep == "/":
-        return path
+        return str(path)
     return str(path).lstrip("/")

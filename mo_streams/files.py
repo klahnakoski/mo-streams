@@ -55,9 +55,8 @@ def content(self):
 
 def _get_extension(file_name):
     parts = file_name.split(".")
-    if len(parts)>1:
+    if len(parts) > 1:
         name = ".".join(parts[:-1])
         extension = parts[-1]
         return name, extension
     return file_name, ""
-

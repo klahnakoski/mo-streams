@@ -9,6 +9,7 @@
 from mo_dots import Data
 from mo_dots.lists import is_many
 from mo_future import first
+from mo_imports import export
 
 from mo_streams.byte_stream import ByteStream
 from mo_streams.empty_stream import EmptyStream
@@ -32,3 +33,5 @@ def stream(value):
     else:
         return ObjectStream(iter([value]), value, type(value))
 
+
+export("mo_streams.object_stream", stream)

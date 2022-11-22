@@ -16,6 +16,6 @@ setup(
     name='mo-streams',
     packages=["mo_streams"],
     url='https://github.com/klahnakoski/mo-streams',
-    version='0.5.22326',
+    version='0.6.22326',
     zip_safe=False
 )
