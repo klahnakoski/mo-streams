@@ -33,7 +33,7 @@ class TestStream(TestCase):
         content = file.content().content().exists().utf8().to_str().to_list()
         self.assertEqual(len(content), 6191)
 
-    def test_zip(self):
+    def test_from_zip(self):
         file = File("tests/resources/example.zip")
         content = file.content().name.to_list()
         self.assertEqual(content, ["LICENSE", "README.md"])
@@ -42,3 +42,8 @@ class TestStream(TestCase):
         values = ["a", "b", "c"]
         result = stream(values).enumerate().to_dict()
         self.assertEqual(result, {0: "a", 1: "b", 2: "c"})
+
+    def test_to_zip(self):
+        file = File("delete_me.zip")
+        stream(File("tests").leaves).to_zip().write(file)
+        file.delete()

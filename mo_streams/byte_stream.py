@@ -30,12 +30,12 @@ class ByteStream:
         """
         RETURN A STREAM OF Files
         """
-        import zipfile
+        from zipfile import ZipFile
 
         def read():
-            archive = zipfile.ZipFile(self.reader, mode="r")
-            for info in archive.filelist:
-                yield File_usingStream(info.filename, ByteStream(archive.open(info.filename, "r")))
+            with ZipFile(self.reader, mode="r") as archive:
+                for info in archive.filelist:
+                    yield File_usingStream(info.filename, ByteStream(archive.open(info.filename, "r")))
 
         return ObjectStream(
             read(),
@@ -98,6 +98,9 @@ class ByteStream:
 
     def lines(self):
         return self.utf8.lines
+
+    def chunk(self, size=8192):
+        return ObjectStream(chunk_bytes(self.reader, size), b'', bytes)
 
     def write(self, file):
         file = File(file)

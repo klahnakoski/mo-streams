@@ -6,13 +6,15 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-from typing import Any, Tuple, Type, Iterator
+from typing import Any, Type, Iterator
+from zipfile import ZIP_STORED
 
 from mo_dots.lists import Log
+from mo_files import File
 from mo_imports import delay_import
 
 from mo_streams import ByteStream, EmptyStream
-from mo_streams.utils import Reader
+from mo_streams.utils import Reader, Writer, os_path, chunk_bytes
 
 TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 
@@ -32,6 +34,7 @@ class ObjectStream:
             Log.error("ambigious")
 
         accessor = getattr(self._example, item)
+
         def read():
             for v in self._iter:
                 try:
@@ -59,10 +62,14 @@ class ObjectStream:
     def map(self, accessor):
         if isinstance(accessor, str):
             example = getattr(self._example, accessor)
-            return ObjectStream((getattr(v, accessor) for v in self._iter), example, type(example))
+            return ObjectStream(
+                (getattr(v, accessor) for v in self._iter), example, type(example)
+            )
         if accessor in self._type:
             example = accessor(self._example)
-            return ObjectStream((accessor(v) for v in self.__iter), example, type(example))
+            return ObjectStream(
+                (accessor(v) for v in self.__iter), example, type(example)
+            )
 
     def exists(self):
         example = None
@@ -81,12 +88,46 @@ class ObjectStream:
         return ObjectStream(read(), example, type(example))
 
     def enumerate(self):
-        return TupleStream(((v, i) for i, v in enumerate(self._iter)), self._example, self._type)
+        return TupleStream(
+            ((v, i) for i, v in enumerate(self._iter)), self._example, self._type
+        )
 
     def to_list(self):
         return list(self._iter)
 
+    def to_zip(
+        self,
+        compression=ZIP_STORED,
+        allowZip64=True,
+        compresslevel=None,
+    ):
+        from zipfile import ZipFile, ZipInfo
 
+        if not isinstance(self._example, File):
+            raise NotImplementedError("expecting stream of Files")
+
+        def read():
+            mode = "w"
+            writer = Writer()
+            with ZipFile(
+                writer,
+                mode=mode,
+                compression=compression,
+                allowZip64=allowZip64,
+                compresslevel=compresslevel
+            ) as archive:
+                for file in self._iter:
+                    filename = os_path(file.abspath)
+                    z_info = ZipInfo.from_file(filename, file.filename)
+                    with archive.open(z_info, mode=mode) as target:
+                        with open(filename, "rb") as source:
+                            for chunk in chunk_bytes(source):
+                                target.write(chunk)
+                                yield writer.read()
+
+            yield writer.read()
+            writer.close()
+        return ByteStream(Reader(read()))
 
 
 class MethodStream(ObjectStream):
@@ -97,4 +138,3 @@ class MethodStream(ObjectStream):
         return ObjectStream(
             (m(*args, **kwargs) for m in self._iter), example, type(example)
         )
-
