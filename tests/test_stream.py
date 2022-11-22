@@ -47,3 +47,22 @@ class TestStream(TestCase):
         file = File("delete_me.zip")
         stream(File("tests").leaves).to_zip().write(file)
         file.delete()
+
+    def test_lambda(self):
+        def func(x):
+            return x + 2
+
+        result = stream([1, 2, 3]).map(func).to_list()
+        self.assertEqual(result, [3, 4, 5])
+
+    def test_sort(self):
+        result = stream([2, 3, 1]).sort().to_list()
+        self.assertEqual(result, [1, 2, 3])
+
+    def test_reverse(self):
+        result = stream([2, 3, 1]).reverse().to_list()
+        self.assertEqual(result, [1, 3, 2])
+
+    def test_distinct(self):
+        result = stream([2, 2, 2, 1, 4, 3, 1]).distinct().to_list()
+        self.assertEqual(result, [2, 1, 4, 3])

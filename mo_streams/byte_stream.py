@@ -35,12 +35,13 @@ class ByteStream:
         def read():
             with ZipFile(self.reader, mode="r") as archive:
                 for info in archive.filelist:
-                    yield File_usingStream(info.filename, ByteStream(archive.open(info.filename, "r")))
+                    yield File_usingStream(
+                        info.filename,
+                        lambda: ByteStream(archive.open(info.filename, "r")),
+                    )
 
         return ObjectStream(
-            read(),
-            File_usingStream("", ByteStream(None)),
-            File_usingStream
+            read(), File_usingStream("", ByteStream(None)), File_usingStream
         )
 
     def from_zst(self):
@@ -48,11 +49,10 @@ class ByteStream:
         :param stream:
         :return:
         """
-        import zstandard
+        from zstandard import ZstdDecompressor
 
         stream_reader = (
-            zstandard
-            .ZstdDecompressor(max_window_size=2147483648)
+            ZstdDecompressor(max_window_size=2147483648)
             .stream_reader(self.reader)
         )
         return ByteStream(stream_reader)
@@ -93,6 +93,7 @@ class ByteStream:
         def read():
             for data in chunk_bytes(self.reader):
                 yield data.decode("utf8")
+            self.reader.close()
 
         return StringStream(read())
 
@@ -100,7 +101,7 @@ class ByteStream:
         return self.utf8.lines
 
     def chunk(self, size=8192):
-        return ObjectStream(chunk_bytes(self.reader, size), b'', bytes)
+        return ObjectStream(chunk_bytes(self.reader, size), b"", bytes)
 
     def write(self, file):
         file = File(file)

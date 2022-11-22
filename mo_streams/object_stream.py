@@ -9,14 +9,14 @@
 from typing import Any, Type, Iterator
 from zipfile import ZIP_STORED
 
-from mo_dots.lists import Log
 from mo_files import File
-from mo_imports import delay_import
+from mo_imports import delay_import, expect
 
 from mo_streams import ByteStream, EmptyStream
 from mo_streams.utils import Reader, Writer, os_path, chunk_bytes
 
 TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
+stream = expect("stream")
 
 
 class ObjectStream:
@@ -30,9 +30,6 @@ class ObjectStream:
         self._type: Type = datatype
 
     def __getattr__(self, item):
-        if hasattr(ObjectStream, item):
-            Log.error("ambigious")
-
         accessor = getattr(self._example, item)
 
         def read():
@@ -65,11 +62,16 @@ class ObjectStream:
             return ObjectStream(
                 (getattr(v, accessor) for v in self._iter), example, type(example)
             )
-        if accessor in self._type:
-            example = accessor(self._example)
-            return ObjectStream(
-                (accessor(v) for v in self.__iter), example, type(example)
-            )
+
+        example = accessor(self._example)
+
+        def read():
+            for v in self._iter:
+                try:
+                    yield accessor(v)
+                except Exception:
+                    yield None
+        return ObjectStream(read(), example, type(example))
 
     def exists(self):
         example = None
@@ -92,14 +94,51 @@ class ObjectStream:
             ((v, i) for i, v in enumerate(self._iter)), self._example, self._type
         )
 
+    def reverse(self):
+        def read():
+            yield from reversed(list(self._iter))
+
+        return ObjectStream(read(), self._example, self._type)
+
+    def sort(self, *, key=None, reverse=0):
+        def read():
+            yield from sorted(self._iter, key=key, reverse=reverse)
+
+        return ObjectStream(read(), self._example, self._type)
+
+    def distinct(self):
+        def read():
+            acc = set()
+            for v in self._iter:
+                if v in acc:
+                    continue
+                acc.add(v)
+                yield v
+
+        return ObjectStream(read(), self._example, self._type)
+
+    def append(self, value):
+        def read():
+            yield from self._iter
+            yield value
+
+        return ObjectStream(read(), self._example, self._type)
+
+    def extend(self, values):
+        def read():
+            yield from self._iter
+            yield stream(values)
+
+        return ObjectStream(read(), self._example, self._type)
+
+    def materialize(self):
+        pass
+
     def to_list(self):
         return list(self._iter)
 
     def to_zip(
-        self,
-        compression=ZIP_STORED,
-        allowZip64=True,
-        compresslevel=None,
+        self, compression=ZIP_STORED, allowZip64=True, compresslevel=None,
     ):
         from zipfile import ZipFile, ZipInfo
 
@@ -114,7 +153,7 @@ class ObjectStream:
                 mode=mode,
                 compression=compression,
                 allowZip64=allowZip64,
-                compresslevel=compresslevel
+                compresslevel=compresslevel,
             ) as archive:
                 for file in self._iter:
                     filename = os_path(file.abspath)
@@ -127,6 +166,7 @@ class ObjectStream:
 
             yield writer.read()
             writer.close()
+
         return ByteStream(Reader(read()))
 
 
