@@ -134,5 +134,5 @@ def os_path(path):
     if path == None:
         return None
     if os.sep == "/":
-        return path
+        return str(path)
     return str(path).lstrip("/")
