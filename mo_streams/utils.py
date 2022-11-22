@@ -7,6 +7,7 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 import os
+from io import RawIOBase
 from typing import BinaryIO
 
 from mo_dots.lists import Log
@@ -57,11 +58,38 @@ class Reader(BinaryIO):
         self.read(position-self.count)
 
 
+class Writer(RawIOBase):
+    """
+    REPLACE IO SO THAT WE CAN read() THE RESULTING
+    """
+    def __init__(self):
+        self._buffer = b''
+
+    def writable(self):
+        return True
+
+    def write(self, b):
+        if self.closed:
+            raise Exception("stream was closed")
+        self._buffer += b
+        return len(b)
+
+    def read(self, size=-1):
+        chunk = self._buffer
+        self._buffer = b''
+        return chunk
+
+    def size(self):
+        return len(self._buffer)
+
+
 def chunk_bytes(reader, size=4096):
     """
     WRAP A FILE-LIKE OBJECT TO LOOK LIKE A GENERATOR
     """
 
+    if isinstance(reader, ByteStream):
+        reader = reader.reader
     if isinstance(reader, Reader):
         return reader._chunks
 
