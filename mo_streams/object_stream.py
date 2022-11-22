@@ -7,7 +7,7 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 from typing import Any, Type, Iterator
-
+from zipfile import ZIP_STORED
 
 from mo_dots.lists import Log
 from mo_files import File
