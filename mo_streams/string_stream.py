@@ -9,12 +9,13 @@
 
 from mo_dots.lists import Log
 
+from mo_json import JxType
 from mo_streams import ObjectStream
 from mo_streams.byte_stream import ByteStream
-from mo_streams.utils import Reader
+from mo_streams.utils import Reader, Stream
 
 
-class StringStream:
+class StringStream(Stream):
     def __init__(self, chunks):
         self._chunks = chunks
 
@@ -24,7 +25,7 @@ class StringStream:
 
         accessor = getattr("", item)
         return ObjectStream(
-            (getattr(v, item) for v in self._chunks), accessor, type(accessor)
+            (getattr(v, item) for v in self._chunks), accessor, {}, type(accessor)
         )
 
     def utf8(self):
@@ -49,7 +50,7 @@ class StringStream:
                 if line:
                     yield line
 
-        return ObjectStream(read, "", str)
+        return ObjectStream(read, "", str, {}, JxType())
 
     def to_str(self):
         return "".join(self._chunks)

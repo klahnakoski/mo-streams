@@ -1,10 +1,10 @@
 # More Streams
 
-Can code be more elegant with method chaining?
+Can Python code be more elegant with method chaining?
 
 ## Overview
 
-There are two types of "streams" in this library, both are lazy:
+There are two families of "streams" in this library, both are lazy:
 
 1. `ByteStream` - a traditional stream of bytes intended to pipe bytes through various byte transformers, like compression, encoding and encyrption.  
 2. `ObjectStream`: An iterator/generator with a number of useful methods.

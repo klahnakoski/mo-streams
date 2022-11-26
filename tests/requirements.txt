@@ -1,3 +1,5 @@
 mo-files
 mo-logs
 zstandard
+boto3
+moto

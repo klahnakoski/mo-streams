@@ -8,10 +8,13 @@
 #
 from io import BytesIO
 
+import boto3
 from mo_files import File
 from mo_imports import delay_import
+from mo_logs import logger
 
-from mo_streams.utils import chunk_bytes, File_usingStream, os_path
+from mo_json import JxType
+from mo_streams.utils import chunk_bytes, File_usingStream, os_path, Stream
 
 StringStream = delay_import("mo_streams.string_stream.StringStream")
 ObjectStream = delay_import("mo_streams.object_stream.ObjectStream")
@@ -19,9 +22,12 @@ tar_stream = delay_import("mo_streams.file_stream.tar_stream")
 zip_stream = delay_import("mo_streams.file_stream.zip_stream")
 
 
-class ByteStream:
-    def __init__(self, reader):
+class ByteStream(Stream):
+    def __init__(self, reader, example_attachments, schema):
+        self.verbose = False
         self.reader: BytesIO = reader
+        self._exmaple_attachments = example_attachments
+        self._schema = schema
 
     def close(self):
         self.reader.close()
@@ -41,7 +47,7 @@ class ByteStream:
                     )
 
         return ObjectStream(
-            read(), File_usingStream("", ByteStream(None)), File_usingStream
+            read(), File_usingStream("", ByteStream(None)), File_usingStream, {}, JxType()
         )
 
     def from_zst(self):
@@ -82,7 +88,7 @@ class ByteStream:
                     return
                 yield file(info)
 
-        return ObjectStream(read(), file(tf.firstmember), File_usingStream)
+        return ObjectStream(read(), file(tf.firstmember), File_usingStream, {}, JxType())
 
     def to_zst(self):
         from zstandard import ZstdCompressor
@@ -101,7 +107,7 @@ class ByteStream:
         return self.utf8.lines
 
     def chunk(self, size=8192):
-        return ObjectStream(chunk_bytes(self.reader, size), b"", bytes)
+        return ObjectStream(chunk_bytes(self.reader, size), b"", bytes, {}, JxType())
 
     def write(self, file):
         file = File(file)
@@ -111,3 +117,13 @@ class ByteStream:
 
     def to_bytes(self):
         return b"".join(chunk_bytes(self.reader))
+
+    def to_s3(self, *, name, bucket):
+        s3_client = boto3.client('s3')
+        try:
+            s3_client.upload_fileobj(self.reader, bucket, name)
+        except Exception as cause:
+            if self.verbose:
+                logger.warn("problem with s3 upload", cause=cause)
+            return False
+        return True

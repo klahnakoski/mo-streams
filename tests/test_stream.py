@@ -10,8 +10,10 @@ import os
 from unittest import TestCase, skipIf
 
 from mo_files import File
+from pandas import DataFrame
 
-from mo_streams import stream
+from mo_streams import stream, it
+from mo_streams.utils import Writer, File_usingStream
 
 IS_TRAVIS = bool(os.environ.get("TRAVIS"))
 
@@ -66,3 +68,28 @@ class TestStream(TestCase):
     def test_distinct(self):
         result = stream([2, 2, 2, 1, 4, 3, 1]).distinct().to_list()
         self.assertEqual(result, [2, 1, 4, 3])
+
+    def test_limit(self):
+        result = stream(range(200)).limit(10).to_list()
+        self.assertEqual(result, list(range(10)))
+
+    # @mock_s3
+    def test_compound(self):
+        result = (
+            stream({"data": [{"a": 1, "b": 2}]})
+            .map(DataFrame)
+            .attach(writer=it(Writer)())
+            .map(it.to_csv(it.writer))
+            .attach(name="test_" + it.key)
+            .map(it(File_usingStream)(it.name, it.writer.content))
+            .to_zip()
+            .to_s3(name="test", bucket="bucket")
+        )
+
+
+    def test_missing_lambda_parameter(self):
+        with self.assertRaises(Exception):
+            result = (
+                stream({"data": [{"a": 1, "b": 2}]})
+                .attach(writer=lambda: Writer())
+            )

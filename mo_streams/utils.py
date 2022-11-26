@@ -12,9 +12,13 @@ from typing import BinaryIO
 
 from mo_dots.lists import Log
 from mo_imports import delay_import
+from mo_logs import logger
 
 ByteStream = delay_import("mo_streams.byte_stream.ByteStream")
 TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
+
+class Stream:
+    pass
 
 
 class Reader(BinaryIO):
@@ -77,9 +81,17 @@ class Writer(RawIOBase):
         return len(b)
 
     def read(self, size=-1):
-        chunk = self._buffer
-        self._buffer = b""
+        if size == -1 or size > len(self._buffer):
+            chunk = self._buffer
+            self._buffer = b""
+            return chunk
+
+        chunk = self._buffer[:size]
+        self._buffer = self._buffer[size:]
         return chunk
+
+    def content(self):
+        return ByteStream(self)
 
     def size(self):
         return len(self._buffer)
@@ -138,3 +150,13 @@ def os_path(path):
     if os.sep == "/":
         return str(path)
     return str(path).lstrip("/")
+
+
+def is_function(value):
+    if type(value).__name__ == "function":
+        return True
+    if isinstance(value, type):
+        return True
+    if hasattr(value, "__call__"):
+        logger.error("not expected")
+    return False

@@ -6,9 +6,10 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
+from mo_streams.utils import Stream
 
 
-class EmptyStream:
+class EmptyStream(Stream):
     def __getattr__(self, item):
         return self
 
