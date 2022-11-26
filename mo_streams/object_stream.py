@@ -16,7 +16,7 @@ from mo_imports import delay_import, expect
 from mo_json import JxType, python_type_to_jx_type, JX_INTEGER, JX_TEXT
 
 from mo_streams import ByteStream, EmptyStream
-from mo_streams.function_factory import FunctionFactory
+from mo_streams.function_factory import FunctionFactory, factory
 from mo_streams.utils import Reader, Writer, os_path, chunk_bytes, Stream, is_function
 
 TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
@@ -28,15 +28,13 @@ class ObjectStream(Stream):
     A STREAM OF OBJECTS
     """
 
-    def __init__(self, values, example, datatype, example_attachments, schema):
+    def __init__(self, values, datatype, schema):
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
-        self._example = example
         self._type: Type = datatype
-        self._example_attachments = example_attachments
         self._schema = schema
 
     def __getattr__(self, item):
-        example = getattr(self._example, item)
+        _type = getattr(self._type, item)
 
         def read():
             for v, a in self._iter:
@@ -45,10 +43,10 @@ class ObjectStream(Stream):
                 except Exception:
                     yield None
 
-        return ObjectStream(read(), example, type(example), self._example_attachments, self._schema)
+        return ObjectStream(read(), _type, self._schema)
 
     def __call__(self, *args, **kwargs):
-        example = self._example(*args, **kwargs)
+        _type = self._type(*args, **kwargs)
 
         def read():
             for m, a in self._iter:
@@ -57,23 +55,19 @@ class ObjectStream(Stream):
                 except Exception:
                     yield None
 
-        if isinstance(example, bytes):
-            return ByteStream(Reader(read()))
+        if _type == bytes:
+            return ByteStream(Reader(read()), self._schema)
 
-        return ObjectStream(read(), example, type(example), self._example_attachments, self._schema)
+        return ObjectStream(read(), _type, self._schema)
 
     def map(self, accessor):
         if isinstance(accessor, str):
-            example = getattr(self._example, accessor)
+            _type = getattr(self._type, accessor)
             return ObjectStream(
-                ((getattr(v, accessor), a) for v, a in self._iter), example, type(example), self._example_attachments, self._schema
+                ((getattr(v, accessor), a) for v, a in self._iter), _type, self._schema
             )
-        elif isinstance(accessor, FunctionFactory):
-            do_accessor = accessor.build(self._example, self._type, self._schema)
-        elif is_function(accessor):
-            do_accessor = lambda v, a: accessor(v)
-
-        example = do_accessor(self._example, self._example_attachments)
+        fact = factory(accessor)
+        do_accessor = fact.build(self._type, self._schema)
 
         def read():
             for v, a in self._iter:
@@ -82,54 +76,37 @@ class ObjectStream(Stream):
                 except Exception:
                     yield None
 
-        return ObjectStream(read(), example, type(example), self._example_attachments, self._schema)
+        return ObjectStream(read(), fact._type, self._schema)
 
     def attach(self, **kwargs):
-        def get_accessor(value):
-            if isinstance(value, FunctionFactory):
-                return value.build()
-            elif is_function(value):
-                return lambda v, a: value(v)
-            else:
-                return lambda v, a: value
 
-        mapper = {k: get_accessor(v) for k, v in kwargs.items()}
-
-        example_attachments = {**self._example_attachments, **{k: m(self._example, {}) for k, m in mapper.items()}}
+        facts = {k: factory(v) for k, v in kwargs.items()}
 
         more_schema = JxType()  # NOT AT REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
-        for k, m in mapper.items():
-            setattr(more_schema, k, type(m(self._example, {})))
+        for k, f in facts.items():
+            setattr(more_schema, k, f._type)
 
+        mapper = {k: f.build(self._type, self._schema) for k, f in facts.items()}
 
         def read():
             for v, a in self._iter:
                 yield v, {**a, **{k: m(v) for k, m in mapper.items()}}
 
-
-        return ObjectStream(read(), self._example, self._type, example_attachments, self._schema | more_schema)
+        return ObjectStream(read(), self._type, self._schema | more_schema)
 
     def exists(self):
-        example = None
-        while example == None:
-            try:
-                example, a = next(self._iter)
-            except StopIteration:
-                return EmptyStream()
-
         def read():
-            yield example
             for v, a in self._iter:
                 if v != None:
                     yield v, a
 
-        return ObjectStream(read(), example, type(example), self._example_attachments, self._schema)
+        return ObjectStream(read(), self._type, self._schema)
 
     def enumerate(self):
         def read():
             for i, (v, a) in enumerate(self._iter):
                 yield v, {**a, "index": i}
-        return ObjectStream(read(), self._example, self._type, {**self._example_attachments, "index":0}, self._schema+JxType(index=JX_INTEGER))
+        return ObjectStream(read(), self._type, self._schema+JxType(index=JX_INTEGER))
 
     def flatten(self):
         def read():
@@ -137,19 +114,19 @@ class ObjectStream(Stream):
                 for vv, aa in stream(v)._iter:
                     yield vv, {**a, **aa}
 
-        return ObjectStream(read(), self._example, self._type, self._example_attachments, self._schema)
+        return ObjectStream(read(), self._type, self._schema)
 
     def reverse(self):
         def read():
             yield from reversed(list(self._iter))
 
-        return ObjectStream(read(), self._example, self._type, self._example_attachments, schema=self._schema)
+        return ObjectStream(read(), self._type, schema=self._schema)
 
     def sort(self, *, key=None, reverse=0):
         def read():
             yield from sorted(self._iter, key=lambda t: key(t[0]), reverse=reverse)
 
-        return ObjectStream(read(), self._example, self._type, self._example_attachments, self._schema)
+        return ObjectStream(read(), self._type, self._schema)
 
     def distinct(self):
         def read():
@@ -160,14 +137,14 @@ class ObjectStream(Stream):
                 acc.add(v)
                 yield v, a
 
-        return ObjectStream(read(), self._example, self._type, self._example_attachments, self._schema)
+        return ObjectStream(read(), self._type, self._schema)
 
     def append(self, value):
         def read():
             yield from self._iter
             yield value, {}
 
-        return ObjectStream(read(), self._example, self._type, self._example_attachments, self._schema)
+        return ObjectStream(read(), self._type, self._schema)
 
     def extend(self, values):
         suffix = stream(values)
@@ -175,7 +152,7 @@ class ObjectStream(Stream):
             yield from self._iter
             yield from suffix._iter
 
-        return ObjectStream(read(), self._example, self._type, self._example_attachments, self._schema+suffix._schema)
+        return ObjectStream(read(), self._type, self._schema+suffix._schema)
 
     def zip(self, *others):
         streams = [stream(o) for o in others]
@@ -195,10 +172,10 @@ class ObjectStream(Stream):
             for v in self._iter:
                 continue
 
-        return ObjectStream(read(), self._example, self._iter, self._example_attachments, self._schema)
+        return ObjectStream(read(), self._iter, self._schema)
 
     def materialize(self):
-        return ObjectStream(list(self._iter), self._example, self._type, self._example_attachments, self._schema)
+        return ObjectStream(list(self._iter), self._type, self._schema)
 
     def to_list(self):
         return list(v for v, _ in self._iter)
@@ -208,7 +185,7 @@ class ObjectStream(Stream):
     ):
         from zipfile import ZipFile, ZipInfo
 
-        if not isinstance(self._example, File):
+        if self._type != File:
             raise NotImplementedError("expecting stream of Files")
 
         def read():

@@ -23,10 +23,9 @@ zip_stream = delay_import("mo_streams.file_stream.zip_stream")
 
 
 class ByteStream(Stream):
-    def __init__(self, reader, example_attachments, schema):
+    def __init__(self, reader, schema):
         self.verbose = False
         self.reader: BytesIO = reader
-        self._exmaple_attachments = example_attachments
         self._schema = schema
 
     def close(self):

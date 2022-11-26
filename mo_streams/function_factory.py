@@ -9,18 +9,19 @@ _set = object.__setattr__
 
 class FunctionFactory:
 
-    def __init__(self, builder):
+    def __init__(self, builder, _type):
+        self._type = type
         self.build = builder
 
     def __getattr__(self, item):
-        def builder(_example, _type, _schema):
-            s = self.build(_example, _type, _schema)
+        def builder(_type, _schema):
+            s = self.build(_type, _schema)
             if item in _schema:
                 def func(v, a):
                     return a[item]
                 return func
             elif isinstance(item, FunctionFactory):
-                i = item.build(_example, _type, _schema)
+                i = item.build(_type, _schema)
                 return lambda v, a: getattr(s(v, a), i(v, a))
             else:
                 return lambda v, a: getattr(s(v, a), item)
@@ -31,10 +32,10 @@ class FunctionFactory:
         args = [factory(a) for a in args]
         kwargs = {k: factory(v) for k, v in kwargs}
 
-        def builder(_example, _type, _schema):
-            s = self.build(_example, _type, _schema)
-            _args = [a.build(_example, _type, _schema) for a in args]
-            _kwargs = {k: v.build(_example, _type, _schema) for k, v in kwargs.items()}
+        def builder(_type, _schema):
+            s = self.build(_type, _schema)
+            _args = [a.build(_type, _schema) for a in args]
+            _kwargs = {k: v.build(_type, _schema) for k, v in kwargs.items()}
             def func(v, a):
                 return s(v, a)(
                     *(f(v, a) for f in _args),
@@ -49,11 +50,11 @@ def factory(item):
     if isinstance(item, FunctionFactory):
         return item
     elif is_function(item):
-        def builder1(_example, _type, _schema):
-            return wrap_func()
+        def builder1(_type, _schema):
+            return wrap_func(item)
         return FunctionFactory(builder1)
     else:
-        def builder2(_example, _type, _schema):
+        def builder2(__type, _schema):
             return lambda v, a: item
         return FunctionFactory(builder2)
 
@@ -62,7 +63,7 @@ def build(item):
     if isinstance(item, FunctionFactory):
         return item.build
 
-    def builder(_example, _type, _schema):
+    def builder(_type, _schema):
         return lambda v, a: item
 
     return builder
@@ -146,7 +147,7 @@ class TopFunctionFactory(FunctionFactory):
     it(x)  RETURNS A FunctionFactory FOR x
     """
     def __call__(self, value):
-        def builder(_example, _type, _schema):
+        def builder(_type, _schema):
             return lambda v, a: value
 
         return FunctionFactory(builder)

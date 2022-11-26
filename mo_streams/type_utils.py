@@ -11,4 +11,4 @@ class Typer:
         self.clazz = clazz
 
     def __getattr__(self, item):
-        inspect.getA
+        inspect.
