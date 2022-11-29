@@ -1,3 +1,11 @@
+# encoding: utf-8
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
+#
 import inspect
 from types import FunctionType
 
@@ -11,11 +19,12 @@ _set = object.__setattr__
 
 class FunctionFactory:
 
-    def __init__(self, builder, type_):
+    def __init__(self, builder, type_, desc):
         if type_ is None:
             logger.error("expecting type")
         _set(self, "build", builder)
         _set(self, "type_", type_)
+        _set(self, "_desc", desc)
 
     def __getattr__(self, item):
         def builder(type_, _schema):
@@ -30,16 +39,14 @@ class FunctionFactory:
             else:
                 return lambda v, a: getattr(s(v, a), item)
 
-        return FunctionFactory(builder, getattr(_get(self, "type_"), item))
+        return FunctionFactory(builder, getattr(_get(self, "type_"), item), f"{self}.{item}")
 
     def __radd__(self, other):
         def builder(type_, _schema):
             return lambda v, a: other + a
 
         type_ = Typer(example=other) + _get(self, "type_")
-        return FunctionFactory(builder, type_)
-
-
+        return FunctionFactory(builder, type_, f"{other} + {self}")
 
     def __call__(self, *args, **kwargs):
         args = [factory(a) for a in args]
@@ -57,21 +64,27 @@ class FunctionFactory:
                 )
             return func
 
-        return FunctionFactory(builder, self.type_)
+        desc_args = [str(a) for a in args]
+        desc_args.extend(f"{k}={v}" for k,v in kwargs)
+        params = ",".join(desc_args)
+        return FunctionFactory(builder, self.type_, f"{self}({params})")
+
+    def __str__(self):
+        return _get(self, "_desc")
 
 
 def factory(item, type_=None):
     if isinstance(item, str):
         def builder(type_, _schema):
             return lambda v, a: getattr(v, item)
-        return FunctionFactory(builder, getattr(type_, item))
+        return FunctionFactory(builder, getattr(type_, item), f"{type_}.{item}")
     elif isinstance(item, FunctionFactory):
         return item
     else:
-        normalized_func = wrap_func(item)
+        normalized_func, type_ = wrap_func(item, type_)
         def builder3(type_, _schema):
             return normalized_func
-        return FunctionFactory(builder3, type_)
+        return FunctionFactory(builder3, type_, f"returning {type_}")
 
 
 def build(item):
@@ -109,7 +122,7 @@ singleArgTypes = [
 ]
 
 
-def wrap_func(func):
+def wrap_func(func, type_):
     if func in singleArgBuiltins:
         spec = inspect.getfullargspec(func)
     elif func.__class__.__name__ == "staticmethod":
@@ -121,17 +134,17 @@ def wrap_func(func):
         spec = inspect.FullArgSpec(["value"], None, None, None, [], None, {})
     elif isinstance(func, type):
         spec = inspect.getfullargspec(func.__init__)
-        func = func.__call__
+        new_func = func.__call__
         # USE ONLY FIRST PARAMETER
         num_args = len(spec.args) - 1  # ASSUME self IS FIRST ARG
         if num_args == 0:
             def wrap_init0(val, ann):
-                return func()
-            return wrap_init0
+                return new_func()
+            return wrap_init0, Typer(type_=func)
         else:
             def wrap_init1(val, ann):
-                return func(val)
-            return wrap_init1
+                return new_func(val)
+            return wrap_init1, Typer(type_=func)
     elif isinstance(func, FunctionType):
         spec = inspect.getfullargspec(func)
     elif hasattr(func, "__call__"):
@@ -153,7 +166,7 @@ def wrap_func(func):
             return func(val)
         wrapper = wrapper1
     else:
-        return func
+        return func, type_
 
     # copy func name to wrapper for sensible debug output
     try:
@@ -162,7 +175,7 @@ def wrap_func(func):
         func_name = str(func)
     wrapper.__name__ = func_name
 
-    return wrapper
+    return wrapper, type_
 
 
 class TopFunctionFactory(FunctionFactory):
@@ -171,6 +184,9 @@ class TopFunctionFactory(FunctionFactory):
     """
     def __call__(self, value):
         return factory(value, LazyTyper())
+
+    def __str__(self):
+        return "it"
 
 
 it = factory(lambda v, a: v, LazyTyper())

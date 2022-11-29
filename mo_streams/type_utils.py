@@ -1,6 +1,16 @@
+# encoding: utf-8
+#
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
+#
 import inspect
 
 from mo_logs import logger
+
+from mo_streams.type_parser import parse
 
 
 class Typer:
@@ -17,8 +27,14 @@ class Typer:
             self.type_ = type_
 
     def __getattr__(self, item):
-        print("hi")
-        inspect.getmembers(self.type_)
+        for name, func in inspect.getmembers(self.type_):
+            if name != item:
+                continue
+            desc = inspect.getfullargspec(func)
+            return_type = desc.annotations.get('return')
+            if not return_type:
+                logger.error("expecting {self.type_.type_.__name__}.{item} to have annotated return type")
+            return parse(return_type)
 
     def __add__(self, other):
         if self.type_ is str or other.type_ is str:
