@@ -1,7 +1,9 @@
 import inspect
 from types import FunctionType
 
-from mo_streams.utils import is_function
+from mo_logs import logger
+
+from mo_streams.type_utils import Typer, LazyTyper
 
 _get = object.__getattribute__
 _set = object.__setattr__
@@ -9,33 +11,45 @@ _set = object.__setattr__
 
 class FunctionFactory:
 
-    def __init__(self, builder, _type):
-        self._type = type
-        self.build = builder
+    def __init__(self, builder, type_):
+        if type_ is None:
+            logger.error("expecting type")
+        _set(self, "build", builder)
+        _set(self, "type_", type_)
 
     def __getattr__(self, item):
-        def builder(_type, _schema):
-            s = self.build(_type, _schema)
+        def builder(type_, _schema):
+            s = _get(self, "build")(type_, _schema)
             if item in _schema:
                 def func(v, a):
                     return a[item]
                 return func
             elif isinstance(item, FunctionFactory):
-                i = item.build(_type, _schema)
+                i = item.build(type_, _schema)
                 return lambda v, a: getattr(s(v, a), i(v, a))
             else:
                 return lambda v, a: getattr(s(v, a), item)
 
-        return FunctionFactory(builder)
+        return FunctionFactory(builder, getattr(_get(self, "type_"), item))
+
+    def __radd__(self, other):
+        def builder(type_, _schema):
+            return lambda v, a: other + a
+
+        type_ = Typer(example=other) + _get(self, "type_")
+        return FunctionFactory(builder, type_)
+
+
 
     def __call__(self, *args, **kwargs):
         args = [factory(a) for a in args]
         kwargs = {k: factory(v) for k, v in kwargs}
 
-        def builder(_type, _schema):
-            s = self.build(_type, _schema)
-            _args = [a.build(_type, _schema) for a in args]
-            _kwargs = {k: v.build(_type, _schema) for k, v in kwargs.items()}
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            _args = [a.build(type_, _schema) for a in args]
+            _kwargs = {k: v.build(type_, _schema) for k, v in kwargs.items()}
+
             def func(v, a):
                 return s(v, a)(
                     *(f(v, a) for f in _args),
@@ -43,27 +57,28 @@ class FunctionFactory:
                 )
             return func
 
-        return FunctionFactory(builder)
+        return FunctionFactory(builder, self.type_)
 
 
-def factory(item):
-    if isinstance(item, FunctionFactory):
+def factory(item, type_=None):
+    if isinstance(item, str):
+        def builder(type_, _schema):
+            return lambda v, a: getattr(v, item)
+        return FunctionFactory(builder, getattr(type_, item))
+    elif isinstance(item, FunctionFactory):
         return item
-    elif is_function(item):
-        def builder1(_type, _schema):
-            return wrap_func(item)
-        return FunctionFactory(builder1)
     else:
-        def builder2(__type, _schema):
-            return lambda v, a: item
-        return FunctionFactory(builder2)
+        normalized_func = wrap_func(item)
+        def builder3(type_, _schema):
+            return normalized_func
+        return FunctionFactory(builder3, type_)
 
 
 def build(item):
     if isinstance(item, FunctionFactory):
         return item.build
 
-    def builder(_type, _schema):
+    def builder(type_, _schema):
         return lambda v, a: item
 
     return builder
@@ -107,6 +122,16 @@ def wrap_func(func):
     elif isinstance(func, type):
         spec = inspect.getfullargspec(func.__init__)
         func = func.__call__
+        # USE ONLY FIRST PARAMETER
+        num_args = len(spec.args) - 1  # ASSUME self IS FIRST ARG
+        if num_args == 0:
+            def wrap_init0(val, ann):
+                return func()
+            return wrap_init0
+        else:
+            def wrap_init1(val, ann):
+                return func(val)
+            return wrap_init1
     elif isinstance(func, FunctionType):
         spec = inspect.getfullargspec(func)
     elif hasattr(func, "__call__"):
@@ -121,16 +146,14 @@ def wrap_func(func):
 
     if num_args == 0:
         def wrapper0(val, ann):
-            return func(), ann
+            return func()
         wrapper = wrapper0
     elif num_args == 1:
         def wrapper1(val, ann):
-            return func(val), ann
+            return func(val)
         wrapper = wrapper1
     else:
-        def wrapper2(val, ann):
-            return func(val, ann), ann
-        wrapper = wrapper2
+        return func
 
     # copy func name to wrapper for sensible debug output
     try:
@@ -147,11 +170,9 @@ class TopFunctionFactory(FunctionFactory):
     it(x)  RETURNS A FunctionFactory FOR x
     """
     def __call__(self, value):
-        def builder(_type, _schema):
-            return lambda v, a: value
-
-        return FunctionFactory(builder)
+        return factory(value, LazyTyper())
 
 
-it = factory(lambda v: v)
+it = factory(lambda v, a: v, LazyTyper())
 it.__class__ = TopFunctionFactory
+

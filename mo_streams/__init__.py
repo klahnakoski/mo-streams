@@ -28,7 +28,7 @@ def stream(value):
         if not kv:
             return EmptyStream()
         _, example = kv
-        return ObjectStream(((v, {"key": k}) for k, v in value.items()), Typer(example), JxType(key=JX_TEXT))
+        return ObjectStream(((v, {"key": k}) for k, v in value.items()), Typer(example=example), JxType(key=JX_TEXT))
     elif isinstance(value, str):
         return StringStream(iter([value]))
     elif value == None:
@@ -37,9 +37,9 @@ def stream(value):
         return value
     elif is_many(value):
         example = first(value)
-        return ObjectStream(iter(value), Typer(example), JxType())
+        return ObjectStream(iter(value), Typer(example=example), JxType())
     else:
-        return ObjectStream(iter([value]), value, type(value), JxType())
+        return ObjectStream(iter([value]), Typer(example=value), JxType())
 
 
 export("mo_streams.object_stream", stream)

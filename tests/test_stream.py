@@ -9,7 +9,9 @@
 import os
 from unittest import TestCase, skipIf
 
+import boto3
 from mo_files import File
+from moto import mock_s3
 from pandas import DataFrame
 
 from mo_streams import stream, it
@@ -73,7 +75,7 @@ class TestStream(TestCase):
         result = stream(range(200)).limit(10).to_list()
         self.assertEqual(result, list(range(10)))
 
-    # @mock_s3
+    @mock_s3
     def test_compound(self):
         result = (
             stream({"data": [{"a": 1, "b": 2}]})
@@ -85,6 +87,17 @@ class TestStream(TestCase):
             .to_zip()
             .to_s3(name="test", bucket="bucket")
         )
+
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket('bucket')
+        for obj in bucket.objects.all():
+            key, body = obj.key, obj.get()['Body'].read()
+            if key=="test":
+                print(body)
+
+
+    def test_s3(self):
+        pass
 
 
     def test_missing_lambda_parameter(self):

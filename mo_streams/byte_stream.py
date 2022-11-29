@@ -22,9 +22,12 @@ tar_stream = delay_import("mo_streams.file_stream.tar_stream")
 zip_stream = delay_import("mo_streams.file_stream.zip_stream")
 
 
+DEBUG = True
+
+
 class ByteStream(Stream):
     def __init__(self, reader, schema):
-        self.verbose = False
+        self.verbose = DEBUG
         self.reader: BytesIO = reader
         self._schema = schema
 

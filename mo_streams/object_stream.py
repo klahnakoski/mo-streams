@@ -6,18 +6,19 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-from typing import Any, Type, Iterator, Dict, Tuple
+from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
-import boto3
 from mo_files import File
-from mo_future import zip_longest, first
+from mo_future import zip_longest
 from mo_imports import delay_import, expect
-from mo_json import JxType, python_type_to_jx_type, JX_INTEGER, JX_TEXT
+from mo_logs import logger
 
-from mo_streams import ByteStream, EmptyStream
-from mo_streams.function_factory import FunctionFactory, factory
-from mo_streams.utils import Reader, Writer, os_path, chunk_bytes, Stream, is_function
+from mo_json import JxType, JX_INTEGER
+from mo_streams import ByteStream
+from mo_streams.function_factory import factory
+from mo_streams.type_utils import Typer, LazyTyper
+from mo_streams.utils import Reader, Writer, os_path, chunk_bytes, Stream, File_usingStream
 
 TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 stream = expect("stream")
@@ -29,12 +30,14 @@ class ObjectStream(Stream):
     """
 
     def __init__(self, values, datatype, schema):
+        if datatype is None or isinstance(datatype, LazyTyper):
+            logger.error("expecting datatype to not be none")
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
-        self._type: Type = datatype
+        self.type_: Typer = datatype
         self._schema = schema
 
     def __getattr__(self, item):
-        _type = getattr(self._type, item)
+        type_ = getattr(self.type_, item)
 
         def read():
             for v, a in self._iter:
@@ -43,10 +46,10 @@ class ObjectStream(Stream):
                 except Exception:
                     yield None
 
-        return ObjectStream(read(), _type, self._schema)
+        return ObjectStream(read(), type_, self._schema)
 
     def __call__(self, *args, **kwargs):
-        _type = self._type(*args, **kwargs)
+        type_ = self.type_(*args, **kwargs)
 
         def read():
             for m, a in self._iter:
@@ -55,19 +58,19 @@ class ObjectStream(Stream):
                 except Exception:
                     yield None
 
-        if _type == bytes:
+        if type_ == bytes:
             return ByteStream(Reader(read()), self._schema)
 
-        return ObjectStream(read(), _type, self._schema)
+        return ObjectStream(read(), type_, self._schema)
 
     def map(self, accessor):
         if isinstance(accessor, str):
-            _type = getattr(self._type, accessor)
+            type_ = getattr(self.type_, accessor)
             return ObjectStream(
-                ((getattr(v, accessor), a) for v, a in self._iter), _type, self._schema
+                ((getattr(v, accessor), a) for v, a in self._iter), type_, self._schema
             )
-        fact = factory(accessor)
-        do_accessor = fact.build(self._type, self._schema)
+        fact = factory(accessor, self.type_)
+        do_accessor = fact.build(self.type_, self._schema)
 
         def read():
             for v, a in self._iter:
@@ -76,7 +79,12 @@ class ObjectStream(Stream):
                 except Exception:
                     yield None
 
-        return ObjectStream(read(), fact._type, self._schema)
+        if isinstance(fact.type_, LazyTyper):
+            type_ = fact.type_._resolver(self.type_)
+        else:
+            type_ = fact.type_
+
+        return ObjectStream(read(), type_, self._schema)
 
     def attach(self, **kwargs):
 
@@ -84,15 +92,15 @@ class ObjectStream(Stream):
 
         more_schema = JxType()  # NOT AT REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
         for k, f in facts.items():
-            setattr(more_schema, k, f._type)
+            setattr(more_schema, k, f.type_)
 
-        mapper = {k: f.build(self._type, self._schema) for k, f in facts.items()}
+        mapper = {k: f.build(f.type_, self._schema) for k, f in facts.items()}
 
         def read():
             for v, a in self._iter:
-                yield v, {**a, **{k: m(v) for k, m in mapper.items()}}
+                yield v, {**a, **{k: m(v, a) for k, m in mapper.items()}}
 
-        return ObjectStream(read(), self._type, self._schema | more_schema)
+        return ObjectStream(read(), self.type_, self._schema | more_schema)
 
     def exists(self):
         def read():
@@ -100,13 +108,13 @@ class ObjectStream(Stream):
                 if v != None:
                     yield v, a
 
-        return ObjectStream(read(), self._type, self._schema)
+        return ObjectStream(read(), self.type_, self._schema)
 
     def enumerate(self):
         def read():
             for i, (v, a) in enumerate(self._iter):
                 yield v, {**a, "index": i}
-        return ObjectStream(read(), self._type, self._schema+JxType(index=JX_INTEGER))
+        return ObjectStream(read(), self.type_, self._schema+JxType(index=JX_INTEGER))
 
     def flatten(self):
         def read():
@@ -114,19 +122,19 @@ class ObjectStream(Stream):
                 for vv, aa in stream(v)._iter:
                     yield vv, {**a, **aa}
 
-        return ObjectStream(read(), self._type, self._schema)
+        return ObjectStream(read(), self.type_, self._schema)
 
     def reverse(self):
         def read():
             yield from reversed(list(self._iter))
 
-        return ObjectStream(read(), self._type, schema=self._schema)
+        return ObjectStream(read(), self.type_, schema=self._schema)
 
     def sort(self, *, key=None, reverse=0):
         def read():
             yield from sorted(self._iter, key=lambda t: key(t[0]), reverse=reverse)
 
-        return ObjectStream(read(), self._type, self._schema)
+        return ObjectStream(read(), self.type_, self._schema)
 
     def distinct(self):
         def read():
@@ -137,14 +145,14 @@ class ObjectStream(Stream):
                 acc.add(v)
                 yield v, a
 
-        return ObjectStream(read(), self._type, self._schema)
+        return ObjectStream(read(), self.type_, self._schema)
 
     def append(self, value):
         def read():
             yield from self._iter
             yield value, {}
 
-        return ObjectStream(read(), self._type, self._schema)
+        return ObjectStream(read(), self.type_, self._schema)
 
     def extend(self, values):
         suffix = stream(values)
@@ -152,7 +160,7 @@ class ObjectStream(Stream):
             yield from self._iter
             yield from suffix._iter
 
-        return ObjectStream(read(), self._type, self._schema+suffix._schema)
+        return ObjectStream(read(), self.type_, self._schema+suffix._schema)
 
     def zip(self, *others):
         streams = [stream(o) for o in others]
@@ -160,7 +168,7 @@ class ObjectStream(Stream):
         def read():
             yield from zip_longest(self._iter, *(s._iter for s in streams))
 
-        return TupleStream(read(), self._example, self._type, sum((s._schema for s in streams), JxType()))
+        return TupleStream(read(), self._example, self.type_, sum((s._schema for s in streams), JxType()))
 
     def limit(self, count):
         def read():
@@ -175,7 +183,7 @@ class ObjectStream(Stream):
         return ObjectStream(read(), self._iter, self._schema)
 
     def materialize(self):
-        return ObjectStream(list(self._iter), self._type, self._schema)
+        return ObjectStream(list(self._iter), self.type_, self._schema)
 
     def to_list(self):
         return list(v for v, _ in self._iter)
@@ -185,7 +193,7 @@ class ObjectStream(Stream):
     ):
         from zipfile import ZipFile, ZipInfo
 
-        if self._type != File:
+        if self.type_.type_ not in (File, File_usingStream):
             raise NotImplementedError("expecting stream of Files")
 
         def read():
@@ -210,5 +218,5 @@ class ObjectStream(Stream):
             yield writer.read()
             writer.close()
 
-        return ByteStream(Reader(read()))
+        return ByteStream(Reader(read()), self._schema)
 

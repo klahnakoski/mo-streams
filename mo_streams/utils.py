@@ -31,6 +31,9 @@ class Reader(BinaryIO):
         self.residue = b""
         self.count = 0
 
+    def readable(self):
+        return True
+
     def read(self, size):
         if not self._chunks:
             return self._more(size)
