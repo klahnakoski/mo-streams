@@ -30,8 +30,8 @@ class ObjectStream(Stream):
     """
 
     def __init__(self, values, datatype, schema):
-        if datatype is None or isinstance(datatype, LazyTyper):
-            logger.error("expecting datatype to not be none")
+        if not isinstance(datatype, Typer) or isinstance(datatype, LazyTyper):
+            logger.error("expecting datatype to be Typer")
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
         self.type_: Typer = datatype
         self._schema = schema

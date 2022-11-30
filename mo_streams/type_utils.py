@@ -41,8 +41,29 @@ class Typer:
             return Typer(type_=str)
         logger.error("not handled")
 
+    def __call__(self, *args, **kwargs):
+        spec = inspect.getfullargspec(self.type_)
+
     def __str__(self):
         return f"Typer(class={self.type_.__name__})"
+
+
+class ClassTyper(Typer):
+    """
+    REPRESENT THE TYPE OF A CLASS; SO WE MAY KNOW TH
+    """
+
+    def __init__(self, *, example):
+        self.type_ = example
+
+    def __call__(self, *args, **kwargs):
+        return Typer(type_=self.type_)
+
+    def __getattr__(self, item):
+        spec = inspect.getmembers(self.type_)
+        for k, m in spec:
+            if k==item:
+                inspect.ismethod(m)
 
 
 class LazyTyper(Typer):
@@ -57,6 +78,11 @@ class LazyTyper(Typer):
     def __getattr__(self, item):
         def build(type_):
             return getattr(type_, item)
+        return LazyTyper(build)
+
+    def __call__(self, *args, **kwargs):
+        def build(type_):
+            return type_
         return LazyTyper(build)
 
     def __str__(self):

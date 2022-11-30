@@ -10,8 +10,9 @@ import inspect
 from types import FunctionType
 
 from mo_logs import logger
+from mo_logs.strings import quote
 
-from mo_streams.type_utils import Typer, LazyTyper
+from mo_streams.type_utils import Typer, LazyTyper, ClassTyper
 
 _get = object.__getattribute__
 _set = object.__setattr__
@@ -20,7 +21,7 @@ _set = object.__setattr__
 class FunctionFactory:
 
     def __init__(self, builder, type_, desc):
-        if type_ is None:
+        if not isinstance(type_, Typer):
             logger.error("expecting type")
         _set(self, "build", builder)
         _set(self, "type_", type_)
@@ -42,8 +43,18 @@ class FunctionFactory:
         return FunctionFactory(builder, getattr(_get(self, "type_"), item), f"{self}.{item}")
 
     def __radd__(self, other):
+        if isinstance(other, FunctionFactory):
+            func_other = other
+        else:
+            func_other = FunctionFactory(lambda v, a: other, Typer(example=other), str(other))
+
         def builder(type_, _schema):
-            return lambda v, a: other + a
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                return o + s(v, a)
+            return func
 
         type_ = Typer(example=other) + _get(self, "type_")
         return FunctionFactory(builder, type_, f"{other} + {self}")
@@ -67,7 +78,8 @@ class FunctionFactory:
         desc_args = [str(a) for a in args]
         desc_args.extend(f"{k}={v}" for k,v in kwargs)
         params = ",".join(desc_args)
-        return FunctionFactory(builder, self.type_, f"{self}({params})")
+
+        return FunctionFactory(builder, self.type_(), f"{self}({params})")
 
     def __str__(self):
         return _get(self, "_desc")
@@ -183,7 +195,16 @@ class TopFunctionFactory(FunctionFactory):
     it(x)  RETURNS A FunctionFactory FOR x
     """
     def __call__(self, value):
-        return factory(value, LazyTyper())
+        if isinstance(value, FunctionFactory):
+            logger.error("don't do this")
+
+        def builder(type_, _schema):
+            return lambda v, a: value
+
+        if isinstance(value, type):
+            return FunctionFactory(builder, ClassTyper(example=value), f"{value}")
+
+        return FunctionFactory(builder, Typer(type_=type(value)), f"{value}")
 
     def __str__(self):
         return "it"
