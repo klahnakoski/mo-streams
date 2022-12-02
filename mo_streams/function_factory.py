@@ -10,16 +10,14 @@ import inspect
 from types import FunctionType
 
 from mo_logs import logger
-from mo_logs.strings import quote
 
-from mo_streams.type_utils import Typer, LazyTyper, ClassTyper
+from mo_streams.type_utils import Typer, LazyTyper, CallableTyper
 
 _get = object.__getattribute__
 _set = object.__setattr__
 
 
 class FunctionFactory:
-
     def __init__(self, builder, type_, desc):
         if not isinstance(type_, Typer):
             logger.error("expecting type")
@@ -31,8 +29,10 @@ class FunctionFactory:
         def builder(type_, _schema):
             s = _get(self, "build")(type_, _schema)
             if item in _schema:
+
                 def func(v, a):
                     return a[item]
+
                 return func
             elif isinstance(item, FunctionFactory):
                 i = item.build(type_, _schema)
@@ -40,13 +40,17 @@ class FunctionFactory:
             else:
                 return lambda v, a: getattr(s(v, a), item)
 
-        return FunctionFactory(builder, getattr(_get(self, "type_"), item), f"{self}.{item}")
+        return FunctionFactory(
+            builder, getattr(_get(self, "type_"), item), f"{self}.{item}"
+        )
 
     def __radd__(self, other):
         if isinstance(other, FunctionFactory):
             func_other = other
         else:
-            func_other = FunctionFactory(lambda v, a: other, Typer(example=other), str(other))
+            func_other = FunctionFactory(
+                lambda v, a: other, Typer(example=other), str(other)
+            )
 
         def builder(type_, _schema):
             s = self.build(type_, _schema)
@@ -54,6 +58,7 @@ class FunctionFactory:
 
             def func(v, a):
                 return o + s(v, a)
+
             return func
 
         type_ = Typer(example=other) + _get(self, "type_")
@@ -71,12 +76,13 @@ class FunctionFactory:
             def func(v, a):
                 return s(v, a)(
                     *(f(v, a) for f in _args),
-                    **{k: f(v, a) for k, f in _kwargs.items()}
+                    **{k: f(v, a) for k, f in _kwargs.items()},
                 )
+
             return func
 
         desc_args = [str(a) for a in args]
-        desc_args.extend(f"{k}={v}" for k,v in kwargs)
+        desc_args.extend(f"{k}={v}" for k, v in kwargs)
         params = ",".join(desc_args)
 
         return FunctionFactory(builder, self.type_(), f"{self}({params})")
@@ -87,15 +93,19 @@ class FunctionFactory:
 
 def factory(item, type_=None):
     if isinstance(item, str):
+
         def builder(type_, _schema):
             return lambda v, a: getattr(v, item)
+
         return FunctionFactory(builder, getattr(type_, item), f"{type_}.{item}")
     elif isinstance(item, FunctionFactory):
         return item
     else:
         normalized_func, type_ = wrap_func(item, type_)
+
         def builder3(type_, _schema):
             return normalized_func
+
         return FunctionFactory(builder3, type_, f"returning {type_}")
 
 
@@ -150,12 +160,16 @@ def wrap_func(func, type_):
         # USE ONLY FIRST PARAMETER
         num_args = len(spec.args) - 1  # ASSUME self IS FIRST ARG
         if num_args == 0:
+
             def wrap_init0(val, ann):
                 return new_func()
+
             return wrap_init0, Typer(type_=func)
         else:
+
             def wrap_init1(val, ann):
                 return new_func(val)
+
             return wrap_init1, Typer(type_=func)
     elif isinstance(func, FunctionType):
         spec = inspect.getfullargspec(func)
@@ -170,12 +184,16 @@ def wrap_func(func, type_):
         num_args = len(spec.args)
 
     if num_args == 0:
+
         def wrapper0(val, ann):
             return func()
+
         wrapper = wrapper0
     elif num_args == 1:
+
         def wrapper1(val, ann):
             return func(val)
+
         wrapper = wrapper1
     else:
         return func, type_
@@ -194,6 +212,7 @@ class TopFunctionFactory(FunctionFactory):
     """
     it(x)  RETURNS A FunctionFactory FOR x
     """
+
     def __call__(self, value):
         if isinstance(value, FunctionFactory):
             logger.error("don't do this")
@@ -202,7 +221,7 @@ class TopFunctionFactory(FunctionFactory):
             return lambda v, a: value
 
         if isinstance(value, type):
-            return FunctionFactory(builder, ClassTyper(example=value), f"{value}")
+            return FunctionFactory(builder, CallableTyper(type_=value), f"{value}")
 
         return FunctionFactory(builder, Typer(type_=type(value)), f"{value}")
 
@@ -212,4 +231,3 @@ class TopFunctionFactory(FunctionFactory):
 
 it = factory(lambda v, a: v, LazyTyper())
 it.__class__ = TopFunctionFactory
-

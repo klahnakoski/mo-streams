@@ -8,15 +8,17 @@
 #
 import inspect
 
+from mo_imports import delay_import
 from mo_logs import logger
 
-from mo_streams.type_parser import parse
+parse = delay_import("mo_streams.type_parser.parse")
 
 
 class Typer:
     """
     Handle the lumps of python type manipulation
     """
+
     def __init__(self, *, example=None, type_=None, function=None):
         if function:
             # find function return type
@@ -31,10 +33,23 @@ class Typer:
             if name != item:
                 continue
             desc = inspect.getfullargspec(func)
-            return_type = desc.annotations.get('return')
+            return_type = desc.annotations.get("return")
             if not return_type:
-                logger.error("expecting {self.type_.type_.__name__}.{item} to have annotated return type")
+                return_type = ANNOTATIONS.get((self.type_, item))
+                if return_type:
+                    return return_type
+
+                logger.error(
+                    "expecting {{type}}.{{item}} to have annotated return type",
+                    type=self.type_.__name__,
+                    item=item,
+                )
             return parse(return_type)
+        logger.error(
+            "expecting {{type}} to have attribute {{item}}",
+            type=self.type_.__name__,
+            item=item,
+        )
 
     def __add__(self, other):
         if self.type_ is str or other.type_ is str:
@@ -48,13 +63,13 @@ class Typer:
         return f"Typer(class={self.type_.__name__})"
 
 
-class ClassTyper(Typer):
+class CallableTyper(Typer):
     """
-    REPRESENT THE TYPE OF A CLASS; SO WE MAY KNOW TH
+    ASSUME THIS WILL BE CALLED, AND THIS IS THE TYPE RETURNED
     """
 
-    def __init__(self, *, example):
-        self.type_ = example
+    def __init__(self, *, type_):
+        self.type_ = type_
 
     def __call__(self, *args, **kwargs):
         return Typer(type_=self.type_)
@@ -62,8 +77,11 @@ class ClassTyper(Typer):
     def __getattr__(self, item):
         spec = inspect.getmembers(self.type_)
         for k, m in spec:
-            if k==item:
+            if k == item:
                 inspect.ismethod(m)
+
+    def __str__(self):
+        return f"CallableTyper(return_type={self.type_.__name__})"
 
 
 class LazyTyper(Typer):
@@ -73,18 +91,24 @@ class LazyTyper(Typer):
 
     def __init__(self, resolver=None):
         Typer.__init__(self)
-        self._resolver : Typer = resolver or (lambda t: t)
+        self._resolver: Typer = resolver or (lambda t: t)
 
     def __getattr__(self, item):
         def build(type_):
             return getattr(type_, item)
+
         return LazyTyper(build)
 
     def __call__(self, *args, **kwargs):
         def build(type_):
             return type_
+
         return LazyTyper(build)
 
     def __str__(self):
         return "LazyTyper()"
 
+
+ANNOTATIONS = {
+    (str, "encode"): CallableTyper(type_=bytes),
+}

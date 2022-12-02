@@ -17,6 +17,7 @@ from mo_logs import logger
 ByteStream = delay_import("mo_streams.byte_stream.ByteStream")
 TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 
+
 class Stream:
     pass
 
@@ -34,7 +35,7 @@ class Reader(BinaryIO):
     def readable(self):
         return True
 
-    def read(self, size):
+    def read(self, size=-1):
         if not self._chunks:
             return self._more(size)
 

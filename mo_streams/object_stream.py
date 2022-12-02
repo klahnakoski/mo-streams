@@ -10,7 +10,7 @@ from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
 from mo_files import File
-from mo_future import zip_longest
+from mo_future import zip_longest, first
 from mo_imports import delay_import, expect
 from mo_logs import logger
 
@@ -18,7 +18,14 @@ from mo_json import JxType, JX_INTEGER
 from mo_streams import ByteStream
 from mo_streams.function_factory import factory
 from mo_streams.type_utils import Typer, LazyTyper
-from mo_streams.utils import Reader, Writer, os_path, chunk_bytes, Stream, File_usingStream
+from mo_streams.utils import (
+    Reader,
+    Writer,
+    os_path,
+    chunk_bytes,
+    Stream,
+    File_usingStream,
+)
 
 TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 stream = expect("stream")
@@ -51,15 +58,22 @@ class ObjectStream(Stream):
     def __call__(self, *args, **kwargs):
         type_ = self.type_(*args, **kwargs)
 
+        if type_.type_ == bytes:
+            def read_bytes():
+                for m, a in self._iter:
+                    try:
+                        yield m(*args, **kwargs)
+                    except Exception:
+                        yield None
+
+            return ByteStream(Reader(read_bytes()), self._schema)
+
         def read():
             for m, a in self._iter:
                 try:
                     yield m(*args, **kwargs), a
                 except Exception:
                     yield None
-
-        if type_ == bytes:
-            return ByteStream(Reader(read()), self._schema)
 
         return ObjectStream(read(), type_, self._schema)
 
@@ -114,7 +128,8 @@ class ObjectStream(Stream):
         def read():
             for i, (v, a) in enumerate(self._iter):
                 yield v, {**a, "index": i}
-        return ObjectStream(read(), self.type_, self._schema+JxType(index=JX_INTEGER))
+
+        return ObjectStream(read(), self.type_, self._schema | JxType(index=JX_INTEGER))
 
     def flatten(self):
         def read():
@@ -156,11 +171,12 @@ class ObjectStream(Stream):
 
     def extend(self, values):
         suffix = stream(values)
+
         def read():
             yield from self._iter
             yield from suffix._iter
 
-        return ObjectStream(read(), self.type_, self._schema+suffix._schema)
+        return ObjectStream(read(), self.type_, self._schema + suffix._schema)
 
     def zip(self, *others):
         streams = [stream(o) for o in others]
@@ -168,7 +184,12 @@ class ObjectStream(Stream):
         def read():
             yield from zip_longest(self._iter, *(s._iter for s in streams))
 
-        return TupleStream(read(), self._example, self.type_, sum((s._schema for s in streams), JxType()))
+        return TupleStream(
+            read(),
+            self._example,
+            self.type_,
+            sum((s._schema for s in streams), JxType()),
+        )
 
     def limit(self, count):
         def read():
@@ -187,6 +208,23 @@ class ObjectStream(Stream):
 
     def to_list(self):
         return list(v for v, _ in self._iter)
+
+    def to_dict(self, key=None):
+        """
+        CONVERT STREAM TO dict
+        :param key: CHOOSE WHICH ANNOTATION IS THE KEY
+        """
+        if key is None:
+            candidates = self._schema.__dict__.keys()
+            if len(candidates) == 1:
+                key = first(candidates)
+            else:
+                logger.error(
+                    "expecting annotation to have just one property, not {{num}}",
+                    num=len(candidates),
+                )
+
+        return {anno[key]: v for v, anno in self._iter}
 
     def to_zip(
         self, compression=ZIP_STORED, allowZip64=True, compresslevel=None,
@@ -219,4 +257,3 @@ class ObjectStream(Stream):
             writer.close()
 
         return ByteStream(Reader(read()), self._schema)
-

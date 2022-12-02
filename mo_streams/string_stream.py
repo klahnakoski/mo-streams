@@ -10,7 +10,8 @@
 from mo_dots.lists import Log
 
 from mo_json import JxType
-from mo_streams import ObjectStream
+from mo_streams.object_stream import ObjectStream
+from mo_streams.type_utils import Typer
 from mo_streams.byte_stream import ByteStream
 from mo_streams.utils import Reader, Stream
 
@@ -20,13 +21,11 @@ class StringStream(Stream):
         self._chunks = chunks
 
     def __getattr__(self, item):
-        if hasattr(StringStream, item):
-            Log.error("ambigious")
+        def read():
+            for v in self._chunks:
+                yield getattr(v, item), {}
 
-        accessor = getattr("", item)
-        return ObjectStream(
-            (getattr(v, item) for v in self._chunks), accessor, {}, type(accessor)
-        )
+        return ObjectStream(read(), getattr(Typer(type_=str), item), JxType())
 
     def utf8(self):
         return ByteStream(Reader((c.encode("utf8") for c in self._chunks)))
@@ -43,14 +42,14 @@ class StringStream(Stream):
                         end = line.find("\n")
 
                     while end != -1:
-                        yield line[:end]
+                        yield line[:end], {}
                         line = line[end:]
                         end = line.find("\n")
             except StopIteration:
                 if line:
-                    yield line
+                    yield line, {}
 
-        return ObjectStream(read, "", str, {}, JxType())
+        return ObjectStream(read, Typer(type_=str), JxType())
 
     def to_str(self):
         return "".join(self._chunks)

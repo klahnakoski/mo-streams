@@ -29,7 +29,6 @@ class ByteStream(Stream):
     def __init__(self, reader, schema):
         self.verbose = DEBUG
         self.reader: BytesIO = reader
-        self._schema = schema
 
     def close(self):
         self.reader.close()
@@ -49,7 +48,11 @@ class ByteStream(Stream):
                     )
 
         return ObjectStream(
-            read(), File_usingStream("", ByteStream(None)), File_usingStream, {}, JxType()
+            read(),
+            File_usingStream("", ByteStream(None)),
+            File_usingStream,
+            {},
+            JxType(),
         )
 
     def from_zst(self):
@@ -60,8 +63,7 @@ class ByteStream(Stream):
         from zstandard import ZstdDecompressor
 
         stream_reader = (
-            ZstdDecompressor(max_window_size=2147483648)
-            .stream_reader(self.reader)
+            ZstdDecompressor(max_window_size=2147483648).stream_reader(self.reader)
         )
         return ByteStream(stream_reader)
 
@@ -90,7 +92,9 @@ class ByteStream(Stream):
                     return
                 yield file(info)
 
-        return ObjectStream(read(), file(tf.firstmember), File_usingStream, {}, JxType())
+        return ObjectStream(
+            read(), file(tf.firstmember), File_usingStream, {}, JxType()
+        )
 
     def to_zst(self):
         from zstandard import ZstdCompressor
@@ -121,7 +125,7 @@ class ByteStream(Stream):
         return b"".join(chunk_bytes(self.reader))
 
     def to_s3(self, *, name, bucket):
-        s3_client = boto3.client('s3')
+        s3_client = boto3.client("s3")
         try:
             s3_client.upload_fileobj(self.reader, bucket, name)
         except Exception as cause:

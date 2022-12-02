@@ -22,6 +22,7 @@ IS_TRAVIS = bool(os.environ.get("TRAVIS"))
 
 class TestStream(TestCase):
     def test_encode(self):
+        "".encode("utf8)")
         result = stream("this is a test").encode("utf8").to_bytes()
         self.assertEquals(result, b"this is a test")
 

@@ -9,14 +9,18 @@
 
 from mo_imports import delay_import
 
+from mo_streams.type_utils import CallableTyper
+
 Typer = delay_import("mo_streams.Typer")
 
 
 def parse(type_desc):
-    types = [clean for t in type_desc.split("|") for clean in [t.strip()] if clean != "None"]
+    types = [
+        clean for t in type_desc.split("|") for clean in [t.strip()] if clean != "None"
+    ]
 
-    if len(types)==1:
-        if types[0]=="str":
-            return Typer(type_=str)
+    if len(types) == 1:
+        if types[0] == "str":
+            return CallableTyper(type_=str)
 
     raise NotImplementedError()
