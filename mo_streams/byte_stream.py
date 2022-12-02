@@ -14,6 +14,7 @@ from mo_imports import delay_import
 from mo_logs import logger
 
 from mo_json import JxType
+from mo_streams.type_parser import Typer
 from mo_streams.utils import chunk_bytes, File_usingStream, os_path, Stream
 
 StringStream = delay_import("mo_streams.string_stream.StringStream")
@@ -26,7 +27,7 @@ DEBUG = True
 
 
 class ByteStream(Stream):
-    def __init__(self, reader, schema):
+    def __init__(self, reader):
         self.verbose = DEBUG
         self.reader: BytesIO = reader
 
@@ -45,14 +46,12 @@ class ByteStream(Stream):
                     yield File_usingStream(
                         info.filename,
                         lambda: ByteStream(archive.open(info.filename, "r")),
-                    )
+                    ), {}
 
         return ObjectStream(
             read(),
-            File_usingStream("", ByteStream(None)),
-            File_usingStream,
-            {},
-            JxType(),
+            Typer(type_=File_usingStream),
+            JxType()
         )
 
     def from_zst(self):
@@ -93,7 +92,7 @@ class ByteStream(Stream):
                 yield file(info)
 
         return ObjectStream(
-            read(), file(tf.firstmember), File_usingStream, {}, JxType()
+            read(), Typer(type_=File_usingStream), JxType()
         )
 
     def to_zst(self):

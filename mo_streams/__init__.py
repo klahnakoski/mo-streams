@@ -39,6 +39,8 @@ def stream(value):
         return EmptyStream
     elif isinstance(value, Stream):
         return value
+    elif isinstance(value, type(range(1))):
+        return ObjectStream(((v, {}) for v in value), Typer(example=value.stop), JxType())
     elif is_many(value):
         example = first(value)
         return ObjectStream(((v, {}) for v in value), Typer(example=example), JxType())

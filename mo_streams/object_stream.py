@@ -66,7 +66,7 @@ class ObjectStream(Stream):
                     except Exception:
                         yield None
 
-            return ByteStream(Reader(read_bytes()), self._schema)
+            return ByteStream(Reader(read_bytes()))
 
         def read():
             for m, a in self._iter:
@@ -146,8 +146,11 @@ class ObjectStream(Stream):
         return ObjectStream(read(), self.type_, schema=self._schema)
 
     def sort(self, *, key=None, reverse=0):
+        if key:
+            key = lambda t: key(t[0])
+
         def read():
-            yield from sorted(self._iter, key=lambda t: key(t[0]), reverse=reverse)
+            yield from sorted(self._iter, key=key, reverse=reverse)
 
         return ObjectStream(read(), self.type_, self._schema)
 
@@ -197,11 +200,9 @@ class ObjectStream(Stream):
                 for i in range(count):
                     yield next(self._iter)
             except StopIteration:
-                return
-            for v in self._iter:
-                continue
+                pass
 
-        return ObjectStream(read(), self._iter, self._schema)
+        return ObjectStream(read(), self.type_, self._schema)
 
     def materialize(self):
         return ObjectStream(list(self._iter), self.type_, self._schema)
@@ -256,4 +257,4 @@ class ObjectStream(Stream):
             yield writer.read()
             writer.close()
 
-        return ByteStream(Reader(read()), self._schema)
+        return ByteStream(Reader(read()))

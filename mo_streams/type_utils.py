@@ -29,6 +29,12 @@ class Typer:
             self.type_ = type_
 
     def __getattr__(self, item):
+        try:
+            attribute_type = self.type_.__annotations__[item]
+            return Typer(type_=attribute_type)
+        except:
+            pass
+
         for name, func in inspect.getmembers(self.type_):
             if name != item:
                 continue
@@ -46,7 +52,7 @@ class Typer:
                 )
             return parse(return_type)
         logger.error(
-            "expecting {{type}} to have attribute {{item}}",
+            "expecting {{type}} to have attribute {{item}} declared with a type annotation",
             type=self.type_.__name__,
             item=item,
         )

@@ -137,11 +137,13 @@ class File_usingStream:
     A File USING A BORROW STREAM.  FOR USE IN TAR AND ZIP FILES
     """
 
+    name: str
+
     def __init__(self, name, content):
         self.name = name
         self._content = content
 
-    def content(self):
+    def content(self) -> ByteStream:
         return self._content()
 
 

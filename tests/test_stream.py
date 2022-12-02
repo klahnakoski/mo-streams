@@ -24,7 +24,7 @@ class TestStream(TestCase):
     def test_encode(self):
         "".encode("utf8)")
         result = stream("this is a test").encode("utf8").to_bytes()
-        self.assertEquals(result, b"this is a test")
+        self.assertEqual(result, b"this is a test")
 
     def test_zst(self):
         file = File("tests/resources/test.zst")
