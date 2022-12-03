@@ -8,10 +8,12 @@
 #
 import inspect
 
-from mo_imports import delay_import
+from mo_imports import expect, export
 from mo_logs import logger
 
-parse = delay_import("mo_streams.type_parser.parse")
+from mo_streams._utils import arg_spec
+
+parse, ANNOTATIONS = expect("parse", "ANNOTATIONS")
 
 
 class Typer:
@@ -35,22 +37,20 @@ class Typer:
         except:
             pass
 
-        for name, func in inspect.getmembers(self.type_):
-            if name != item:
-                continue
-            desc = inspect.getfullargspec(func)
+        desc = arg_spec(self.type_, item)
+        if desc:
             return_type = desc.annotations.get("return")
-            if not return_type:
-                return_type = ANNOTATIONS.get((self.type_, item))
-                if return_type:
-                    return return_type
+            if return_type:
+                return parse(return_type)
+            return_type = ANNOTATIONS.get((self.type_, item))
+            if return_type:
+                return return_type
 
-                logger.error(
-                    "expecting {{type}}.{{item}} to have annotated return type",
-                    type=self.type_.__name__,
-                    item=item,
-                )
-            return parse(return_type)
+            logger.error(
+                "expecting {{type}}.{{item}} to have annotated return type",
+                type=self.type_.__name__,
+                item=item,
+            )
         logger.error(
             "expecting {{type}} to have attribute {{item}} declared with a type annotation",
             type=self.type_.__name__,
@@ -115,6 +115,5 @@ class LazyTyper(Typer):
         return "LazyTyper()"
 
 
-ANNOTATIONS = {
-    (str, "encode"): CallableTyper(type_=bytes),
-}
+export("mo_streams.type_parser", Typer)
+export("mo_streams.byte_stream", Typer)

@@ -6,7 +6,7 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-from mo_streams.utils import Stream
+from mo_streams._utils import Stream
 
 
 class EmptyStream(Stream):

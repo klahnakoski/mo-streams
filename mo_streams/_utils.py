@@ -6,16 +6,16 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
+import inspect
 import os
 from io import RawIOBase
 from typing import BinaryIO
 
 from mo_dots.lists import Log
-from mo_imports import delay_import
+from mo_imports import expect
 from mo_logs import logger
 
-ByteStream = delay_import("mo_streams.byte_stream.ByteStream")
-TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
+ByteStream = expect("ByteStream")
 
 
 class Stream:
@@ -143,7 +143,7 @@ class File_usingStream:
         self.name = name
         self._content = content
 
-    def content(self) -> ByteStream:
+    def content(self):
         return self._content()
 
 
@@ -166,3 +166,10 @@ def is_function(value):
     if hasattr(value, "__call__"):
         logger.error("not expected")
     return False
+
+
+def arg_spec(type_, item):
+    for name, func in inspect.getmembers(type_):
+        if name != item:
+            continue
+        return inspect.getfullargspec(func)

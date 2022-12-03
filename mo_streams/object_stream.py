@@ -11,14 +11,14 @@ from zipfile import ZIP_STORED
 
 from mo_files import File
 from mo_future import zip_longest, first
-from mo_imports import delay_import, expect
+from mo_imports import expect, export
 from mo_logs import logger
 
 from mo_json import JxType, JX_INTEGER
 from mo_streams import ByteStream
 from mo_streams.function_factory import factory
 from mo_streams.type_utils import Typer, LazyTyper
-from mo_streams.utils import (
+from mo_streams._utils import (
     Reader,
     Writer,
     os_path,
@@ -27,7 +27,6 @@ from mo_streams.utils import (
     File_usingStream,
 )
 
-TupleStream = delay_import("mo_streams.tuple_stream.TupleStream")
 stream = expect("stream")
 
 
@@ -38,7 +37,7 @@ class ObjectStream(Stream):
 
     def __init__(self, values, datatype, schema):
         if not isinstance(datatype, Typer) or isinstance(datatype, LazyTyper):
-            logger.error("expecting datatype to be Typer")
+            logger.error("expecting datatype to be Typer not {{type}}", type=datatype.__class__.__name__)
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
         self.type_: Typer = datatype
         self._schema = schema
@@ -73,7 +72,7 @@ class ObjectStream(Stream):
                 try:
                     yield m(*args, **kwargs), a
                 except Exception:
-                    yield None
+                    yield None, a
 
         return ObjectStream(read(), type_, self._schema)
 
@@ -258,3 +257,5 @@ class ObjectStream(Stream):
             writer.close()
 
         return ByteStream(Reader(read()))
+
+export("mo_streams.byte_stream", ObjectStream)

@@ -15,7 +15,7 @@ from moto import mock_s3
 from pandas import DataFrame
 
 from mo_streams import stream, it
-from mo_streams.utils import Writer, File_usingStream
+from mo_streams._utils import Writer, File_usingStream
 
 IS_TRAVIS = bool(os.environ.get("TRAVIS"))
 

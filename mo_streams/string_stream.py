@@ -7,13 +7,13 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 
-from mo_dots.lists import Log
+from mo_imports import export
 
 from mo_json import JxType
+from mo_streams._utils import Reader, Stream
+from mo_streams.byte_stream import ByteStream
 from mo_streams.object_stream import ObjectStream
 from mo_streams.type_utils import Typer
-from mo_streams.byte_stream import ByteStream
-from mo_streams.utils import Reader, Stream
 
 
 class StringStream(Stream):
@@ -27,7 +27,7 @@ class StringStream(Stream):
 
         return ObjectStream(read(), getattr(Typer(type_=str), item), JxType())
 
-    def utf8(self):
+    def utf8(self) -> ByteStream:
         return ByteStream(Reader((c.encode("utf8") for c in self._chunks)))
 
     def lines(self):
@@ -51,5 +51,8 @@ class StringStream(Stream):
 
         return ObjectStream(read, Typer(type_=str), JxType())
 
-    def to_str(self):
+    def to_str(self) -> str:
         return "".join(self._chunks)
+
+
+export("mo_streams.byte_stream", StringStream)

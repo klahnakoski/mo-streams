@@ -10,17 +10,13 @@ from io import BytesIO
 
 import boto3
 from mo_files import File
-from mo_imports import delay_import
+from mo_imports import expect, export
 from mo_logs import logger
 
-from mo_json import JxType
-from mo_streams.type_parser import Typer
-from mo_streams.utils import chunk_bytes, File_usingStream, os_path, Stream
+from mo_json import JxType, JX_TEXT
+from mo_streams._utils import chunk_bytes, File_usingStream, os_path, Stream
 
-StringStream = delay_import("mo_streams.string_stream.StringStream")
-ObjectStream = delay_import("mo_streams.object_stream.ObjectStream")
-tar_stream = delay_import("mo_streams.file_stream.tar_stream")
-zip_stream = delay_import("mo_streams.file_stream.zip_stream")
+ObjectStream, StringStream, Typer = expect("ObjectStream", "StringStream", "Typer")
 
 
 DEBUG = True
@@ -46,12 +42,12 @@ class ByteStream(Stream):
                     yield File_usingStream(
                         info.filename,
                         lambda: ByteStream(archive.open(info.filename, "r")),
-                    ), {}
+                    ), {"name": info.filename}
 
         return ObjectStream(
             read(),
             Typer(type_=File_usingStream),
-            JxType()
+            JxType(name=JX_TEXT)
         )
 
     def from_zst(self):
@@ -89,10 +85,10 @@ class ByteStream(Stream):
                 info = tf.next()
                 if not info:
                     return
-                yield file(info)
+                yield file(info), {"name": info.name}
 
         return ObjectStream(
-            read(), Typer(type_=File_usingStream), JxType()
+            read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT)
         )
 
     def to_zst(self):
@@ -132,3 +128,6 @@ class ByteStream(Stream):
                 logger.warn("problem with s3 upload", cause=cause)
             return False
         return True
+
+
+export("mo_streams._utils", ByteStream)

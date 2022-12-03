@@ -7,14 +7,17 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 
-from mo_imports import delay_import
+from mo_imports import export, expect
 
 from mo_streams.type_utils import CallableTyper
 
-Typer = delay_import("mo_streams.Typer")
+Typer = expect("Typer")
 
 
 def parse(type_desc):
+    if isinstance(type_desc, type):
+        return CallableTyper(type_=type_desc)
+
     types = [
         clean for t in type_desc.split("|") for clean in [t.strip()] if clean != "None"
     ]
@@ -24,3 +27,7 @@ def parse(type_desc):
             return CallableTyper(type_=str)
 
     raise NotImplementedError()
+
+
+export("mo_streams.type_utils", parse)
+

@@ -11,7 +11,7 @@ from mo_files import File
 from mo_future import get_function_name
 
 from mo_streams import ByteStream
-from mo_streams.utils import os_path
+from mo_streams._utils import os_path
 
 DECODERS = {
     "zst": ByteStream.from_zst,

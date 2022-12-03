@@ -10,16 +10,16 @@ from mo_dots import Data
 from mo_dots.lists import is_many
 from mo_future import first
 from mo_imports import export
-from mo_json import JxType, JX_TEXT
 
+from mo_json import JxType, JX_TEXT
+from mo_streams._utils import Stream, File_usingStream
 from mo_streams.byte_stream import ByteStream
 from mo_streams.empty_stream import EmptyStream
 from mo_streams.files import content
+from mo_streams.function_factory import it
 from mo_streams.object_stream import ObjectStream
 from mo_streams.string_stream import StringStream
-from mo_streams.type_utils import Typer
-from mo_streams.utils import Stream
-from mo_streams.function_factory import it
+from mo_streams.type_utils import Typer, CallableTyper
 
 
 def stream(value):
@@ -48,4 +48,14 @@ def stream(value):
         return ObjectStream(iter([(value, {})]), Typer(example=value), JxType())
 
 
+ANNOTATIONS = {
+    (str, "encode"): CallableTyper(type_=bytes),
+    (File_usingStream, "content"): CallableTyper(type_=ByteStream),
+    (ByteStream, "utf8"): CallableTyper(type_=StringStream),
+}
+
 export("mo_streams.object_stream", stream)
+export("mo_streams.type_utils", ANNOTATIONS)
+
+
+
