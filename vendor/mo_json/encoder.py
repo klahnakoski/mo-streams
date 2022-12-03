@@ -131,7 +131,9 @@ class cPythonJSONEncoder(object):
             from mo_logs import Log
 
             cause = Except.wrap(cause)
-            Log.warning("problem serializing {{type}}", type=text(repr(value)), cause=cause)
+            Log.warning(
+                "problem serializing {{type}}", type=text(repr(value)), cause=cause
+            )
             raise cause
 
 

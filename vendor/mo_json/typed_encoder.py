@@ -80,9 +80,7 @@ def untype_path(encoded):
         )
     else:
         return join_field(
-            decode_property(c)
-            for c in split_field(encoded)
-            if not IS_TYPE_KEY.match(c)
+            decode_property(c) for c in split_field(encoded) if not IS_TYPE_KEY.match(c)
         )
 
 
@@ -200,9 +198,9 @@ def typed_encode(value, sub_schema, path, net_new_properties, buffer):
             if value_json_type == column_json_type:
                 pass  # ok
             elif value_json_type == ARRAY and all(
-                    python_type_to_jx_type[v.__class__] == column_json_type
-                    for v in value
-                    if v != None
+                python_type_to_jx_type[v.__class__] == column_json_type
+                for v in value
+                if v != None
             ):
                 pass  # empty arrays can be anything
             else:

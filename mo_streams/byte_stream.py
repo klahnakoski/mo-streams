@@ -14,9 +14,9 @@ from mo_imports import expect, export
 from mo_logs import logger
 
 from mo_json import JxType, JX_TEXT
-from mo_streams._utils import chunk_bytes, File_usingStream, os_path, Stream
+from mo_streams._utils import chunk_bytes, os_path, Stream
 
-ObjectStream, StringStream, Typer = expect("ObjectStream", "StringStream", "Typer")
+ObjectStream, StringStream, File_usingStream, Typer = expect("ObjectStream", "StringStream", "File_usingStream", "Typer")
 
 
 DEBUG = True
@@ -30,25 +30,25 @@ class ByteStream(Stream):
     def close(self):
         self.reader.close()
 
-    def from_zip(self):
+    def from_zip(self) -> ObjectStream:
         """
         RETURN A STREAM OF Files
         """
         from zipfile import ZipFile
 
         def read():
-            with ZipFile(self.reader, mode="r") as archive:
+            # ZIP HAS DIRACTORY AT END OF FILE, MUST READ WHOLE THING
+            reader = self.reader
+            if not reader.seekable():
+                reader = BytesIO(b"".join(chunk_bytes(reader)))
+            with ZipFile(reader, mode="r") as archive:
                 for info in archive.filelist:
                     yield File_usingStream(
                         info.filename,
                         lambda: ByteStream(archive.open(info.filename, "r")),
                     ), {"name": info.filename}
 
-        return ObjectStream(
-            read(),
-            Typer(type_=File_usingStream),
-            JxType(name=JX_TEXT)
-        )
+        return ObjectStream(read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT))
 
     def from_zst(self):
         """
@@ -87,9 +87,7 @@ class ByteStream(Stream):
                     return
                 yield file(info), {"name": info.name}
 
-        return ObjectStream(
-            read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT)
-        )
+        return ObjectStream(read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT))
 
     def to_zst(self):
         from zstandard import ZstdCompressor
@@ -122,12 +120,9 @@ class ByteStream(Stream):
     def to_s3(self, *, name, bucket):
         s3_client = boto3.client("s3")
         try:
-            s3_client.upload_fileobj(self.reader, bucket, name)
+            return s3_client.upload_fileobj(self.reader, bucket, name)
         except Exception as cause:
             if self.verbose:
                 logger.warn("problem with s3 upload", cause=cause)
-            return False
-        return True
-
 
 export("mo_streams._utils", ByteStream)

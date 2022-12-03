@@ -8,7 +8,7 @@
 #
 import inspect
 import os
-from io import RawIOBase
+from io import RawIOBase, BytesIO
 from typing import BinaryIO
 
 from mo_dots.lists import Log
@@ -16,7 +16,7 @@ from mo_imports import expect
 from mo_logs import logger
 
 ByteStream = expect("ByteStream")
-
+START, CURRENT, END = 0, 1, 2
 
 class Stream:
     pass
@@ -61,7 +61,12 @@ class Reader(BinaryIO):
     def tell(self):
         return self.count
 
-    def seek(self, position):
+    def seek(self, position, whence=START):
+        if whence == END:
+            everything = BytesIO(b"".join(self._chunks))
+
+
+
         if self.count > position:
             raise NotImplementedError()
         self.read(position - self.count)
@@ -77,6 +82,9 @@ class Writer(RawIOBase):
 
     def writable(self):
         return True
+
+    def seekable(self):
+        return False
 
     def write(self, b):
         if self.closed:
@@ -130,21 +138,6 @@ def chunk_bytes(reader, size=4096):
                 pass
 
     return read()
-
-
-class File_usingStream:
-    """
-    A File USING A BORROW STREAM.  FOR USE IN TAR AND ZIP FILES
-    """
-
-    name: str
-
-    def __init__(self, name, content):
-        self.name = name
-        self._content = content
-
-    def content(self):
-        return self._content()
 
 
 def os_path(path):

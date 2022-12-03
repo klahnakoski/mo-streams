@@ -52,7 +52,8 @@ class Typer:
                 item=item,
             )
         logger.error(
-            "expecting {{type}} to have attribute {{item}} declared with a type annotation",
+            "expecting {{type}} to have attribute {{item|quote}} declared with a type"
+            " annotation",
             type=self.type_.__name__,
             item=item,
         )

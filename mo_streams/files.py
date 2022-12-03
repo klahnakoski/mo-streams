@@ -9,9 +9,9 @@
 
 from mo_files import File
 from mo_future import get_function_name
+from mo_imports import export
 
-from mo_streams import ByteStream
-from mo_streams._utils import os_path
+from mo_streams._utils import os_path, ByteStream
 
 DECODERS = {
     "zst": ByteStream.from_zst,
@@ -53,6 +53,11 @@ def content(self):
     return _get_file_stream(self.abspath, ByteStream(open(os_path(self), "rb")))
 
 
+@_extend(File)
+def bytes(self):
+    return ByteStream(open(os_path(self), "rb"))
+
+
 def _get_extension(file_name):
     parts = file_name.split(".")
     if len(parts) > 1:
@@ -60,3 +65,24 @@ def _get_extension(file_name):
         extension = parts[-1]
         return name, extension
     return file_name, ""
+
+
+class File_usingStream:
+    """
+    A File USING A BORROW STREAM.  FOR USE IN TAR AND ZIP FILES
+    """
+
+    filename: str
+
+    def __init__(self, filename, content):
+        self.filename = filename
+        self._content = content
+
+    def content(self):
+        return self._content()
+
+    def bytes(self):
+        return self._content()
+
+
+export("mo_streams.byte_stream", File_usingStream)

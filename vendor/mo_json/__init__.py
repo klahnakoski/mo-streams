@@ -21,7 +21,8 @@ from mo_dots import (
     Null,
     SLOT,
     to_data,
-    leaves_to_data, null_types,
+    leaves_to_data,
+    null_types,
 )
 from mo_dots.objects import DataObject
 from mo_future import (

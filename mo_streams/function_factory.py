@@ -66,7 +66,7 @@ class FunctionFactory:
 
     def __call__(self, *args, **kwargs):
         args = [factory(a) for a in args]
-        kwargs = {k: factory(v) for k, v in kwargs}
+        kwargs = {k: factory(v) for k, v in kwargs.items()}
 
         def builder(type_, _schema):
             s = self.build(type_, _schema)
@@ -82,7 +82,7 @@ class FunctionFactory:
             return func
 
         desc_args = [str(a) for a in args]
-        desc_args.extend(f"{k}={v}" for k, v in kwargs)
+        desc_args.extend(f"{k}={v}" for k, v in kwargs.items())
         params = ",".join(desc_args)
 
         return FunctionFactory(builder, self.type_(), f"{self}({params})")
@@ -93,11 +93,17 @@ class FunctionFactory:
 
 def factory(item, type_=None):
     if isinstance(item, str):
-
+        # ASSUME ACCESSOR NAME
         def builder(type_, _schema):
             return lambda v, a: getattr(v, item)
 
         return FunctionFactory(builder, getattr(type_, item), f"{type_}.{item}")
+    elif isinstance(item, (bool, int, float)):
+        # CONSTANT
+        def build_constant(type_, _schema):
+            return lambda v, a: item
+
+        return FunctionFactory(build_constant, Typer(example=item), f"{item}")
     elif isinstance(item, FunctionFactory):
         return item
     else:

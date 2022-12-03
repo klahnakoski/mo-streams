@@ -12,10 +12,10 @@ from mo_future import first
 from mo_imports import export
 
 from mo_json import JxType, JX_TEXT
-from mo_streams._utils import Stream, File_usingStream
+from mo_streams._utils import Stream, Reader
 from mo_streams.byte_stream import ByteStream
 from mo_streams.empty_stream import EmptyStream
-from mo_streams.files import content
+from mo_streams.files import content, File_usingStream
 from mo_streams.function_factory import it
 from mo_streams.object_stream import ObjectStream
 from mo_streams.string_stream import StringStream
@@ -33,6 +33,8 @@ def stream(value):
             Typer(example=example),
             JxType(key=JX_TEXT),
         )
+    elif isinstance(value, bytes):
+        return ByteStream(Reader(iter([value])))
     elif isinstance(value, str):
         return StringStream(iter([value]))
     elif value == None:
@@ -40,7 +42,9 @@ def stream(value):
     elif isinstance(value, Stream):
         return value
     elif isinstance(value, type(range(1))):
-        return ObjectStream(((v, {}) for v in value), Typer(example=value.stop), JxType())
+        return ObjectStream(
+            ((v, {}) for v in value), Typer(example=value.stop), JxType()
+        )
     elif is_many(value):
         example = first(value)
         return ObjectStream(((v, {}) for v in value), Typer(example=example), JxType())
@@ -56,6 +60,3 @@ ANNOTATIONS = {
 
 export("mo_streams.object_stream", stream)
 export("mo_streams.type_utils", ANNOTATIONS)
-
-
-

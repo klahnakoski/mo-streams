@@ -3,3 +3,4 @@ mo-logs
 zstandard
 boto3
 moto
+pandas

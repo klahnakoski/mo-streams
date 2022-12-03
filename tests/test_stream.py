@@ -15,14 +15,15 @@ from moto import mock_s3
 from pandas import DataFrame
 
 from mo_streams import stream, it
-from mo_streams._utils import Writer, File_usingStream
+from mo_streams._utils import Writer
+from mo_streams.files import File_usingStream
 
 IS_TRAVIS = bool(os.environ.get("TRAVIS"))
 
 
 class TestStream(TestCase):
     def test_encode(self):
-        "".encode("utf8)")
+        "".encode("utf8")
         result = stream("this is a test").encode("utf8").to_bytes()
         self.assertEqual(result, b"this is a test")
 
@@ -40,7 +41,7 @@ class TestStream(TestCase):
 
     def test_from_zip(self):
         file = File("tests/resources/example.zip")
-        content = file.content().name.to_list()
+        content = file.content().filename.to_list()
         self.assertEqual(content, ["LICENSE", "README.md"])
 
     def test_dict_zip(self):
@@ -76,8 +77,7 @@ class TestStream(TestCase):
         result = stream(range(200)).limit(10).to_list()
         self.assertEqual(result, list(range(10)))
 
-    @mock_s3
-    def test_compound(self):
+    def test_to_zip2(self):
         result = (
             stream({"data": [{"a": 1, "b": 2}]})
             .map(DataFrame)
@@ -86,24 +86,35 @@ class TestStream(TestCase):
             .attach(name="test_" + it.key)
             .map(it(File_usingStream)(it.name, it.writer.content))
             .to_zip()
+            .write("tests/resources/test_to_zip.zip")
+        )
+
+    @mock_s3
+    def test_zip_to_s3(self):
+        s3 = boto3.resource("s3")
+        s3.create_bucket(Bucket='bucket')
+
+        result = (
+            stream({"data": [{"a": 1, "b": 2}]})
+            .map(DataFrame)
+            .attach(writer=it(Writer)())
+            .map(it.to_csv(it.writer, index=False))
+            .attach(name="test_" + it.key)
+            .map(it(File_usingStream)(it.name, it.writer.content))
+            .to_zip()
             .to_s3(name="test", bucket="bucket")
         )
 
-        s3 = boto3.resource('s3')
-        bucket = s3.Bucket('bucket')
+        bucket = s3.Bucket("bucket")
         for obj in bucket.objects.all():
-            key, body = obj.key, obj.get()['Body'].read()
-            if key=="test":
-                print(body)
-
-
-    def test_s3(self):
-        pass
-
+            key, body = obj.key, obj.get()["Body"].read()
+            if key == "test":
+                content = stream(body).from_zip().content().utf8().to_str().to_list()
+                self.assertEqual(content, ['a,b\r\n1,2\r\n'])
 
     def test_missing_lambda_parameter(self):
         with self.assertRaises(Exception):
-            result = (
-                stream({"data": [{"a": 1, "b": 2}]})
-                .attach(writer=lambda: Writer())
-            )
+            result = stream({"data": [{
+                "a": 1,
+                "b": 2,
+            }]}).attach(writer=lambda: Writer())

@@ -163,7 +163,7 @@ class JxType(object):
         return str(self.__data__())
 
     def __repr__(self):
-        return "JxType(**"+str(self.__data__())+")"
+        return "JxType(**" + str(self.__data__()) + ")"
 
 
 def base_type(type_):
@@ -388,4 +388,3 @@ python_type_to_jx_type_key = {
     list: _A,
     set: _A,
 }
-

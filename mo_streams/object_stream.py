@@ -16,16 +16,17 @@ from mo_logs import logger
 
 from mo_json import JxType, JX_INTEGER
 from mo_streams import ByteStream
-from mo_streams.function_factory import factory
-from mo_streams.type_utils import Typer, LazyTyper
 from mo_streams._utils import (
     Reader,
     Writer,
     os_path,
     chunk_bytes,
     Stream,
-    File_usingStream,
 )
+from mo_streams.byte_stream import DEBUG
+from mo_streams.files import File_usingStream
+from mo_streams.function_factory import factory
+from mo_streams.type_utils import Typer, LazyTyper
 
 stream = expect("stream")
 
@@ -37,7 +38,10 @@ class ObjectStream(Stream):
 
     def __init__(self, values, datatype, schema):
         if not isinstance(datatype, Typer) or isinstance(datatype, LazyTyper):
-            logger.error("expecting datatype to be Typer not {{type}}", type=datatype.__class__.__name__)
+            logger.error(
+                "expecting datatype to be Typer not {{type}}",
+                type=datatype.__class__.__name__,
+            )
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
         self.type_: Typer = datatype
         self._schema = schema
@@ -49,8 +53,9 @@ class ObjectStream(Stream):
             for v, a in self._iter:
                 try:
                     yield getattr(v, item), a
-                except Exception:
-                    yield None
+                except Exception as cause:
+                    DEBUG and logger.warn("can not get attribute {{item|quote}}", cause=cause)
+                    yield None, a
 
         return ObjectStream(read(), type_, self._schema)
 
@@ -58,6 +63,7 @@ class ObjectStream(Stream):
         type_ = self.type_(*args, **kwargs)
 
         if type_.type_ == bytes:
+
             def read_bytes():
                 for m, a in self._iter:
                     try:
@@ -90,7 +96,7 @@ class ObjectStream(Stream):
                 try:
                     yield do_accessor(v, a), a
                 except Exception:
-                    yield None
+                    yield None, a
 
         if isinstance(fact.type_, LazyTyper):
             type_ = fact.type_._resolver(self.type_)
@@ -231,8 +237,15 @@ class ObjectStream(Stream):
     ):
         from zipfile import ZipFile, ZipInfo
 
-        if self.type_.type_ not in (File, File_usingStream):
+        type_= self.type_.type_
+        if type_ is File:
+            pass
+        elif type_ is File_usingStream:
+            pass
+        else:
             raise NotImplementedError("expecting stream of Files")
+
+
 
         def read():
             mode = "w"
@@ -245,17 +258,16 @@ class ObjectStream(Stream):
                 compresslevel=compresslevel,
             ) as archive:
                 for file, _ in self._iter:
-                    filename = os_path(file.abspath)
-                    z_info = ZipInfo.from_file(filename, file.filename)
-                    with archive.open(z_info, mode=mode) as target:
-                        with open(filename, "rb") as source:
-                            for chunk in chunk_bytes(source):
-                                target.write(chunk)
-                                yield writer.read()
+                    info = ZipInfo(file.filename)
+                    with archive.open(info, mode=mode) as target:
+                        for chunk in chunk_bytes(file.bytes()):
+                            target.write(chunk)
+                            yield writer.read()
 
             yield writer.read()
             writer.close()
 
         return ByteStream(Reader(read()))
+
 
 export("mo_streams.byte_stream", ObjectStream)

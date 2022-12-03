@@ -30,4 +30,3 @@ def parse(type_desc):
 
 
 export("mo_streams.type_utils", parse)
-
