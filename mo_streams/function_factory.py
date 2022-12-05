@@ -95,13 +95,7 @@ class FunctionFactory:
 
 
 def factory(item, type_=None):
-    if isinstance(item, str):
-        # ASSUME ACCESSOR NAME
-        def builder(type_, _schema):
-            return lambda v, a: getattr(v, item)
-
-        return FunctionFactory(builder, getattr(type_, item), f"{type_}.{item}")
-    elif isinstance(item, (bool, int, float)):
+    if isinstance(item, (str, bytes, bool, int, float)):
         # CONSTANT
         def build_constant(type_, _schema):
             return lambda v, a: item

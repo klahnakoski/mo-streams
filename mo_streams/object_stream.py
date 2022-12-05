@@ -105,7 +105,6 @@ class ObjectStream(Stream):
         return ObjectStream(read(), type_, self._schema)
 
     def attach(self, **kwargs):
-
         facts = {k: factory(v) for k, v in kwargs.items()}
 
         more_schema = JxType()  # NOT AT REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
