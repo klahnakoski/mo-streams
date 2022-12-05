@@ -8,7 +8,6 @@
 #
 from io import BytesIO
 
-import boto3
 from mo_files import File
 from mo_imports import expect, export
 from mo_logs import logger
@@ -118,6 +117,8 @@ class ByteStream(Stream):
         return b"".join(chunk_bytes(self.reader))
 
     def to_s3(self, *, name, bucket):
+        import boto3
+
         s3_client = boto3.client("s3")
         try:
             return s3_client.upload_fileobj(self.reader, bucket, name)
