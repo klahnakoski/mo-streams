@@ -18,6 +18,9 @@ _set = object.__setattr__
 
 
 class FunctionFactory:
+    """
+    See mo-streams/docs/function_factory.md
+    """
     def __init__(self, builder, type_, desc):
         if not isinstance(type_, Typer):
             logger.error("expecting type")
@@ -167,13 +170,13 @@ def wrap_func(func, type_):
         num_args = len(spec.args) - 1  # ASSUME self IS FIRST ARG
         if num_args == 0:
 
-            def wrap_init0(val, ann):
+            def wrap_init0(val, att):
                 return new_func()
 
             return wrap_init0, Typer(type_=func)
         else:
 
-            def wrap_init1(val, ann):
+            def wrap_init1(val, att):
                 return new_func(val)
 
             return wrap_init1, Typer(type_=func)
@@ -191,13 +194,13 @@ def wrap_func(func, type_):
 
     if num_args == 0:
 
-        def wrapper0(val, ann):
+        def wrapper0(val, att):
             return func()
 
         wrapper = wrapper0
     elif num_args == 1:
 
-        def wrapper1(val, ann):
+        def wrapper1(val, att):
             return func(val)
 
         wrapper = wrapper1

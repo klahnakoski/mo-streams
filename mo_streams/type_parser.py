@@ -15,7 +15,11 @@ Typer = expect("Typer")
 
 
 def parse(type_desc):
+    """
+    THIS FUNCTION IS INCOMPLETE
+    """
     if isinstance(type_desc, type):
+        # SOME TYPE ANNOTATIONS ARE ACTUAL TYPES, NOT STRINGS
         return CallableTyper(type_=type_desc)
 
     types = [

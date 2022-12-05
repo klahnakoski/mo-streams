@@ -1,6 +1,7 @@
-# More Streams
+# More Streams!!
 
-Can Python code be more elegant with method chaining?
+Python code is more elegant with method chaining!
+
 
 ## Overview
 
@@ -35,3 +36,25 @@ In this case I am iterating through all files in a tar and parsing them:
  * `.map(parse)` - run the parser on each string
  * `.to_list()` - a "terminator", which executes the chain and returns a Python `list` with the results
  
+## Project Status
+
+Alive and in use, but 
+
+* basic functions missing
+* inefficient - written using generators
+* generators not properly closed
+
+
+## Optional Reading
+
+The method chaining style has two distinct benefits
+
+* functions are in the order they are applied 
+* intermediate values need no temporary variables
+
+The detriments are the same that we find in any declarative language: Incorrect code can be difficult to debug because you can not step through it to isolate the problem.  For this reason, the majority of the code in this library is dedicated to validating the links in the function chain before they are run.
+
+### Lessons
+
+The function chaining style, called "streams" in Java or "linq" in C#, leans heavly on the strict typed nature of those langauges.  This is missing in Python, but type annotations help support this style of programming.
+

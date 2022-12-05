@@ -184,7 +184,7 @@ class ObjectStream(Stream):
             yield from self._iter
             yield from suffix._iter
 
-        return ObjectStream(read(), self.type_, self._schema + suffix._schema)
+        return ObjectStream(read(), self.type_, self._schema | suffix._schema)
 
     def zip(self, *others):
         streams = [stream(o) for o in others]
@@ -222,15 +222,14 @@ class ObjectStream(Stream):
         """
         if key is None:
             candidates = self._schema.__dict__.keys()
-            if len(candidates) == 1:
-                key = first(candidates)
-            else:
+            if len(candidates) != 1:
                 logger.error(
-                    "expecting annotation to have just one property, not {{num}}",
+                    "expecting attachment to have just one property, not {{num}}",
                     num=len(candidates),
                 )
+            key = first(candidates)
 
-        return {anno[key]: v for v, anno in self._iter}
+        return {a[key]: v for v, a in self._iter}
 
     def to_zip(
         self, compression=ZIP_STORED, allowZip64=True, compresslevel=None,

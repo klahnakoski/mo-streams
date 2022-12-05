@@ -18,7 +18,7 @@ parse, ANNOTATIONS = expect("parse", "ANNOTATIONS")
 
 class Typer:
     """
-    Handle the lumps of python type manipulation
+    Smooth out the lumps of Python type manipulation
     """
 
     def __init__(self, *, example=None, type_=None, function=None):
@@ -52,8 +52,7 @@ class Typer:
                 item=item,
             )
         logger.error(
-            "expecting {{type}} to have attribute {{item|quote}} declared with a type"
-            " annotation",
+            """expecting {{type}} to have attribute {{item|quote}} declared with a type annotation""",
             type=self.type_.__name__,
             item=item,
         )
@@ -93,7 +92,7 @@ class CallableTyper(Typer):
 
 class LazyTyper(Typer):
     """
-    PLACEHOLDER FOR STREAM ELEMENT TYPE, UNKNOWN DURING LAMBDA DEFINTION
+    PLACEHOLDER FOR STREAM ELEMENT TYPE, UNKNOWN DURING LAMBDA DEFINITION
     """
 
     def __init__(self, resolver=None):
