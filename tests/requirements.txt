@@ -1,5 +1,6 @@
 mo-files
 mo-logs
+mo-json
 zstandard
 boto3
 moto
