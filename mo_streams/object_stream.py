@@ -19,7 +19,6 @@ from mo_streams import ByteStream
 from mo_streams._utils import (
     Reader,
     Writer,
-    os_path,
     chunk_bytes,
     Stream,
 )
@@ -257,7 +256,7 @@ class ObjectStream(Stream):
                 compresslevel=compresslevel,
             ) as archive:
                 for file, _ in self._iter:
-                    info = ZipInfo(file.filename)
+                    info = ZipInfo(file.rel_path)
                     with archive.open(info, mode=mode) as target:
                         for chunk in chunk_bytes(file.bytes()):
                             target.write(chunk)

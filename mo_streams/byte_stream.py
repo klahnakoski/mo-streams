@@ -13,7 +13,7 @@ from mo_imports import expect, export
 from mo_logs import logger
 
 from mo_json import JxType, JX_TEXT
-from mo_streams._utils import chunk_bytes, os_path, Stream
+from mo_streams._utils import chunk_bytes, Stream
 
 ObjectStream, StringStream, File_usingStream, Typer = expect("ObjectStream", "StringStream", "File_usingStream", "Typer")
 
@@ -109,7 +109,7 @@ class ByteStream(Stream):
 
     def write(self, file):
         file = File(file)
-        with open(os_path(file), "wb") as f:
+        with open(file.os_path, "wb") as f:
             for d in chunk_bytes(self.reader):
                 f.write(d)
 

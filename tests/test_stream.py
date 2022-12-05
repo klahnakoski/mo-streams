@@ -41,7 +41,7 @@ class TestStream(TestCase):
 
     def test_from_zip(self):
         file = File("tests/resources/example.zip")
-        content = file.content().filename.to_list()
+        content = file.content().rel_path.to_list()
         self.assertEqual(content, ["LICENSE", "README.md"])
 
     def test_dict_zip(self):

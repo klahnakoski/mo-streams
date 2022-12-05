@@ -140,17 +140,6 @@ def chunk_bytes(reader, size=4096):
     return read()
 
 
-def os_path(path):
-    """
-    :return: OS-specific path
-    """
-    if path == None:
-        return None
-    if os.sep == "/":
-        return str(path)
-    return str(path).lstrip("/")
-
-
 def is_function(value):
     if type(value).__name__ == "function":
         return True

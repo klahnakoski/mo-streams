@@ -11,7 +11,7 @@ from mo_files import File
 from mo_future import get_function_name
 from mo_imports import export
 
-from mo_streams._utils import os_path, ByteStream
+from mo_streams._utils import ByteStream
 
 DECODERS = {
     "zst": ByteStream.from_zst,
@@ -50,12 +50,12 @@ def _extend(cls):
 
 @_extend(File)
 def content(self):
-    return _get_file_stream(self.abspath, ByteStream(open(os_path(self), "rb")))
+    return _get_file_stream(self.os_path, ByteStream(open(self.os_path, "rb")))
 
 
 @_extend(File)
 def bytes(self):
-    return ByteStream(open(os_path(self), "rb"))
+    return ByteStream(open(self.os_path, "rb"))
 
 
 def _get_extension(file_name):
@@ -72,10 +72,10 @@ class File_usingStream:
     A File USING A BORROW STREAM.  FOR USE IN TAR AND ZIP FILES
     """
 
-    filename: str
+    rel_path: str
 
-    def __init__(self, filename, content):
-        self.filename = filename
+    def __init__(self, rel_path, content):
+        self.rel_path = rel_path
         self._content = content
 
     def content(self):
