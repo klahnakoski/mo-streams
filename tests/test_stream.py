@@ -99,7 +99,7 @@ class TestStream(TestCase):
             stream({"data": [{"a": 1, "b": 2}]})
             .map(DataFrame)
             .attach(writer=it(Writer)())
-            .map(it.to_csv(it.writer, index=False))
+            .map(it.to_csv(it.writer, index=False, line_terminator='\n'))
             .attach(name="test_" + it.key)
             .map(it(File_usingStream)(it.name, it.writer.content))
             .to_zip()
@@ -111,7 +111,7 @@ class TestStream(TestCase):
             key, body = obj.key, obj.get()["Body"].read()
             if key == "test":
                 content = stream(body).from_zip().content().utf8().to_str().to_list()
-                self.assertEqual(content, ['a,b\r\n1,2\r\n'])
+                self.assertEqual(content, ['a,b\n1,2\n'])
 
     def test_missing_lambda_parameter(self):
         with self.assertRaises(Exception):

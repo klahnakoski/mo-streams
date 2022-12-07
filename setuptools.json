@@ -14,8 +14,8 @@
     "extras_require": {"tests": ["mo-files", "mo-logs", "zstandard", "boto3", "moto", "pandas"]},
     "include_package_data": true,
     "install_requires": [
-          "mo-dots==9.279.22339",  "mo-files==6.279.22339", "mo-future==6.265.22338",
-          "mo-json==6.279.22339"
+          "mo-dots==9.279.22339",  "mo-files==6.281.22341", "mo-future==6.265.22338",
+          "mo-json==6.281.22341"
     ],
     "license": "MPL 2.0",
     "long_description": {
@@ -88,6 +88,6 @@
     "name": "mo-streams",
     "packages": ["mo_streams"],
     "url": "https://github.com/klahnakoski/mo-streams",
-    "version": "1.279.22339",
+    "version": "1.281.22341",
     "zip_safe": false
 }
