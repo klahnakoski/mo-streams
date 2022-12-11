@@ -10,7 +10,7 @@ import os
 from unittest import TestCase, skipIf
 
 import boto3
-from mo_files import File
+from mo_files import File, TempFile
 from mo_math import randoms
 from moto import mock_s3
 from pandas import DataFrame
@@ -51,9 +51,8 @@ class TestStream(TestCase):
         self.assertEqual(result, {0: "a", 1: "b", 2: "c"})
 
     def test_to_zip(self):
-        file = File(f"delete_{randoms.base64(5)}.zip")
-        stream(File("tests").leaves).to_zip().write(file)
-        file.delete()
+        with TempFile(f"delete_{randoms.base64(5)}.zip") as file:
+            stream(File("tests").leaves).to_zip().write(file)
 
     def test_lambda(self):
         def func(x):

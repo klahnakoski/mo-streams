@@ -15,7 +15,9 @@ from mo_logs import logger
 from mo_json import JxType, JX_TEXT
 from mo_streams._utils import chunk_bytes, Stream
 
-ObjectStream, StringStream, File_usingStream, Typer = expect("ObjectStream", "StringStream", "File_usingStream", "Typer")
+ObjectStream, StringStream, File_usingStream, Typer = expect(
+    "ObjectStream", "StringStream", "File_usingStream", "Typer"
+)
 
 
 DEBUG = True
@@ -59,9 +61,7 @@ class ByteStream(Stream):
         """
         from zstandard import ZstdDecompressor
 
-        stream_reader = (
-            ZstdDecompressor().stream_reader(self.reader, closefd=True)
-        )
+        stream_reader = ZstdDecompressor().stream_reader(self.reader, closefd=True)
         return ByteStream(stream_reader)
 
     def from_tar(self):
@@ -131,5 +131,6 @@ class ByteStream(Stream):
         except Exception as cause:
             if self.verbose:
                 logger.warn("problem with s3 upload", cause=cause)
+
 
 export("mo_streams._utils", ByteStream)

@@ -21,6 +21,7 @@ class FunctionFactory:
     """
     See mo-streams/docs/function_factory.md
     """
+
     def __init__(self, builder, type_, desc):
         if not isinstance(type_, Typer):
             logger.error("expecting type")
