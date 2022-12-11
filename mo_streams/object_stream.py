@@ -52,8 +52,12 @@ class ObjectStream(Stream):
             for v, a in self._iter:
                 try:
                     yield getattr(v, item), a
+                except (StopIteration, GeneratorExit):
+                    raise
                 except Exception as cause:
-                    DEBUG and logger.warn("can not get attribute {{item|quote}}", cause=cause)
+                    DEBUG and logger.warn(
+                        "can not get attribute {{item|quote}}", cause=cause
+                    )
                     yield None, a
 
         return ObjectStream(read(), type_, self._schema)
@@ -67,6 +71,8 @@ class ObjectStream(Stream):
                 for m, a in self._iter:
                     try:
                         yield m(*args, **kwargs)
+                    except (StopIteration, GeneratorExit):
+                        raise
                     except Exception:
                         yield None
 
@@ -76,6 +82,8 @@ class ObjectStream(Stream):
             for m, a in self._iter:
                 try:
                     yield m(*args, **kwargs), a
+                except (StopIteration, GeneratorExit):
+                    raise
                 except Exception:
                     yield None, a
 
@@ -94,6 +102,8 @@ class ObjectStream(Stream):
             for v, a in self._iter:
                 try:
                     yield do_accessor(v, a), a
+                except (StopIteration, GeneratorExit):
+                    raise
                 except Exception:
                     yield None, a
 
@@ -234,15 +244,13 @@ class ObjectStream(Stream):
     ):
         from zipfile import ZipFile, ZipInfo
 
-        type_= self.type_.type_
+        type_ = self.type_.type_
         if type_ is File:
             pass
         elif type_ is File_usingStream:
             pass
         else:
             raise NotImplementedError("expecting stream of Files")
-
-
 
         def read():
             mode = "w"

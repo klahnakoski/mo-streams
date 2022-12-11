@@ -38,14 +38,17 @@ class ByteStream(Stream):
         def read():
             # ZIP HAS DIRACTORY AT END OF FILE, MUST READ WHOLE THING
             reader = self.reader
-            if not reader.seekable():
-                reader = BytesIO(b"".join(chunk_bytes(reader)))
-            with ZipFile(reader, mode="r") as archive:
-                for info in archive.filelist:
-                    yield File_usingStream(
-                        info.filename,
-                        lambda: ByteStream(archive.open(info.filename, "r")),
-                    ), {"name": info.filename}
+            try:
+                if not reader.seekable():
+                    reader = BytesIO(b"".join(chunk_bytes(reader)))
+                with ZipFile(reader, mode="r") as archive:
+                    for info in archive.filelist:
+                        yield File_usingStream(
+                            info.filename,
+                            lambda: ByteStream(archive.open(info.filename, "r")),
+                        ), {"name": info.filename}
+            finally:
+                reader.close()
 
         return ObjectStream(read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT))
 
@@ -57,7 +60,7 @@ class ByteStream(Stream):
         from zstandard import ZstdDecompressor
 
         stream_reader = (
-            ZstdDecompressor(max_window_size=2147483648).stream_reader(self.reader)
+            ZstdDecompressor().stream_reader(self.reader, closefd=True)
         )
         return ByteStream(stream_reader)
 
@@ -80,11 +83,14 @@ class ByteStream(Stream):
                 )
 
         def read():
-            while True:
-                info = tf.next()
-                if not info:
-                    return
-                yield file(info), {"name": info.name}
+            try:
+                while True:
+                    info = tf.next()
+                    if not info:
+                        return
+                    yield file(info), {"name": info.name}
+            finally:
+                self.reader.close()
 
         return ObjectStream(read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT))
 
