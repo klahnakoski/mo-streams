@@ -7,13 +7,12 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 from mo_dots import Data
-from mo_dots.lists import is_many
+from mo_dots.lists import is_many, is_finite
 from mo_files import File
-
-from mo_future import first
 from mo_imports import export
 
-from mo_json import JxType, JX_TEXT
+from mo_future import first
+from mo_json import JxType
 from mo_streams._utils import Stream, Reader
 from mo_streams.byte_stream import ByteStream
 from mo_streams.empty_stream import EmptyStream
@@ -47,6 +46,13 @@ def stream(value):
         return ObjectStream(
             ((v, {}) for v in value), Typer(example=value.stop), JxType()
         )
+    elif is_finite(value):
+        example = first(value)
+        def read_from_list():
+            for v in value:
+                yield v, {}
+
+        return ObjectStream(read_from_list(), Typer(example=example), JxType())
     elif is_many(value):
         example = first(value)
         def read():

@@ -132,7 +132,7 @@ class TestStream(TestCase):
         self.assertEqual(result, [2, 3, 4])
 
     def test_filter(self):
-        result = stream([1, 2, 3]).filter(lambda v: v%1).to_list()
+        result = stream([1, 2, 3]).filter(lambda v: v%2).to_list()
         self.assertEqual(result, [1,3])
 
 
