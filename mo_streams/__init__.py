@@ -8,6 +8,8 @@
 #
 from mo_dots import Data
 from mo_dots.lists import is_many
+from mo_files import File
+
 from mo_future import first
 from mo_imports import export
 
@@ -47,7 +49,12 @@ def stream(value):
         )
     elif is_many(value):
         example = first(value)
-        return ObjectStream(((v, {}) for v in value), Typer(example=example), JxType())
+        def read():
+            yield example, {}
+            for v in value:
+                yield v, {}
+
+        return ObjectStream(read(), Typer(example=example), JxType())
     else:
         return ObjectStream(iter([(value, {})]), Typer(example=value), JxType())
 
@@ -55,6 +62,7 @@ def stream(value):
 ANNOTATIONS = {
     (str, "encode"): CallableTyper(type_=bytes),
     (File_usingStream, "content"): CallableTyper(type_=ByteStream),
+    (File, "content"): CallableTyper(type_=ByteStream),
     (ByteStream, "utf8"): CallableTyper(type_=StringStream),
 }
 
