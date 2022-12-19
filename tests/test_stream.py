@@ -129,7 +129,11 @@ class TestStream(TestCase):
 
     def test_map_lambda(self):
         result = stream(["1", "2", "3"]).map(lambda v: int(v)+1).to_list()
-        self.assertEqual(result, [3, 4, 5])
+        self.assertEqual(result, [2, 3, 4])
+
+    def test_filter(self):
+        result = stream([1, 2, 3]).filter(lambda v: v%1).to_list()
+        self.assertEqual(result, [1,3])
 
 
 def length(value):

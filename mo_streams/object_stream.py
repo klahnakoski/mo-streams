@@ -114,6 +114,23 @@ class ObjectStream(Stream):
 
         return ObjectStream(read(), type_, self._schema)
 
+    def filter(self, predicate):
+        fact = factory(predicate, self.type_)
+        filteror = fact.build(self.type_, self._schema)
+
+        def read():
+            for v, a in self._iter:
+                try:
+                    if filteror(v, a):
+                        yield v, a
+                except (StopIteration, GeneratorExit):
+                    raise
+                except Exception:
+                    pass
+
+        return ObjectStream(read(), self.type_, self._schema)
+
+
     def attach(self, **kwargs):
         facts = {k: factory(v) for k, v in kwargs.items()}
 
@@ -222,6 +239,9 @@ class ObjectStream(Stream):
 
     def to_list(self):
         return list(v for v, _ in self._iter)
+
+    def count(self):
+        return sum(1 for _ in self._iter)
 
     def to_dict(self, key=None):
         """
