@@ -118,3 +118,20 @@ class TestStream(TestCase):
                 "a": 1,
                 "b": 2,
             }]}).attach(writer=lambda: Writer())
+
+    def test_map_int(self):
+        result = stream(["1", "2", "3"]).map(int).to_list()
+        self.assertEqual(result, [1,2,3])
+
+    def test_map_function(self):
+        result = stream(["1", "2", "3"]).map(length).to_list()
+        self.assertEqual(result, [1, 1, 1])
+
+    def test_map_lambda(self):
+        result = stream(["1", "2", "3"]).map(lambda v: int(v)+1).to_list()
+        self.assertEqual(result, [3, 4, 5])
+
+
+def length(value):
+    return len(value)
+
