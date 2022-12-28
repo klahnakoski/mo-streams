@@ -48,12 +48,12 @@ class JxType(object):
             if sv is ov:
                 continue
             if sv is None:
-                if k in T_NUMBER_TYPES.__dict__ and sd.get(_N):
+                if k in JX_NUMBER_TYPES.__dict__ and sd.get(_N):
                     continue
                 elif k is _N and any(
-                    sd.get(kk) for kk in T_NUMBER_TYPES.__dict__.keys()
+                    sd.get(kk) for kk in JX_NUMBER_TYPES.__dict__.keys()
                 ):
-                    for kk in T_NUMBER_TYPES.__dict__.keys():
+                    for kk in JX_NUMBER_TYPES.__dict__.keys():
                         try:
                             del sd[kk]
                         except Exception as cause:
@@ -88,7 +88,7 @@ class JxType(object):
         return hash(tuple(sorted(self.__dict__.keys())))
 
     def leaves(self):
-        if self in T_PRIMITIVE:
+        if self in JX_PRIMITIVE:
             yield ".", self
         else:
             for k, v in self.__dict__.items():
@@ -255,8 +255,8 @@ JX_TEXT = _primitive(_S, STRING)
 JX_ARRAY = _primitive(_A, ARRAY)
 JX_JSON = _primitive(_J, JSON)
 
-T_PRIMITIVE = _new(JxType)
-T_PRIMITIVE.__dict__ = [
+JX_PRIMITIVE = _new(JxType)
+JX_PRIMITIVE.__dict__ = [
     (x, x.update(d))[0]
     for x in [{}]
     for d in [
@@ -268,8 +268,8 @@ T_PRIMITIVE.__dict__ = [
         JX_TEXT.__dict__,
     ]
 ][0]
-T_NUMBER_TYPES = _new(JxType)
-T_NUMBER_TYPES.__dict__ = [
+JX_NUMBER_TYPES = _new(JxType)
+JX_NUMBER_TYPES.__dict__ = [
     (x, x.update(d))[0]
     for x in [{}]
     for d in [

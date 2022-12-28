@@ -8,9 +8,9 @@
 #
 
 from mo_files import File
-from mo_future import get_function_name
 from mo_imports import export
 
+from mo_future import extend
 from mo_streams._utils import ByteStream
 
 DECODERS = {
@@ -34,26 +34,12 @@ def _get_file_stream(file, stream):
     return _get_file_stream(name, decoder(stream))
 
 
-def _extend(cls):
-    """
-    DECORATOR TO ADD METHODS TO CLASSES
-    :param cls: THE CLASS TO ADD THE METHOD TO
-    :return:
-    """
-
-    def extender(func):
-        setattr(cls, get_function_name(func), func)
-        return func
-
-    return extender
-
-
-@_extend(File)
+@extend(File)
 def content(self):
     return _get_file_stream(self.os_path, ByteStream(open(self.os_path, "rb")))
 
 
-@_extend(File)
+@extend(File)
 def bytes(self):
     return ByteStream(open(self.os_path, "rb"))
 

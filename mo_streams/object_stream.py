@@ -9,12 +9,12 @@
 from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
-from mo_files import File
 from mo_future import zip_longest, first
 from mo_imports import expect, export
+from mo_json import JxType, JX_INTEGER
 from mo_logs import logger
 
-from mo_json import JxType, JX_INTEGER
+from mo_files import File
 from mo_streams import ByteStream
 from mo_streams._utils import (
     Reader,
@@ -28,6 +28,10 @@ from mo_streams.function_factory import factory
 from mo_streams.type_utils import Typer, LazyTyper
 
 stream = expect("stream")
+
+ERROR = {}
+WARNING = {}
+NONE = {}
 
 
 class ObjectStream(Stream):
@@ -52,8 +56,12 @@ class ObjectStream(Stream):
             for v, a in self._iter:
                 try:
                     yield getattr(v, item), a
+                except (StopIteration, GeneratorExit):
+                    raise
                 except Exception as cause:
-                    DEBUG and logger.warn("can not get attribute {{item|quote}}", cause=cause)
+                    DEBUG and logger.warn(
+                        "can not get attribute {{item|quote}}", cause=cause
+                    )
                     yield None, a
 
         return ObjectStream(read(), type_, self._schema)
@@ -67,6 +75,8 @@ class ObjectStream(Stream):
                 for m, a in self._iter:
                     try:
                         yield m(*args, **kwargs)
+                    except (StopIteration, GeneratorExit):
+                        raise
                     except Exception:
                         yield None
 
@@ -76,6 +86,8 @@ class ObjectStream(Stream):
             for m, a in self._iter:
                 try:
                     yield m(*args, **kwargs), a
+                except (StopIteration, GeneratorExit):
+                    raise
                 except Exception:
                     yield None, a
 
@@ -94,7 +106,9 @@ class ObjectStream(Stream):
             for v, a in self._iter:
                 try:
                     yield do_accessor(v, a), a
-                except Exception:
+                except (StopIteration, GeneratorExit):
+                    raise
+                except Exception as cause:
                     yield None, a
 
         if isinstance(fact.type_, LazyTyper):
@@ -103,6 +117,23 @@ class ObjectStream(Stream):
             type_ = fact.type_
 
         return ObjectStream(read(), type_, self._schema)
+
+    def filter(self, predicate):
+        fact = factory(predicate, self.type_)
+        filteror = fact.build(self.type_, self._schema)
+
+        def read():
+            for v, a in self._iter:
+                try:
+                    if filteror(v, a):
+                        yield v, a
+                except (StopIteration, GeneratorExit):
+                    raise
+                except Exception as cause:
+                    pass
+
+        return ObjectStream(read(), self.type_, self._schema)
+
 
     def attach(self, **kwargs):
         facts = {k: factory(v) for k, v in kwargs.items()}
@@ -213,6 +244,9 @@ class ObjectStream(Stream):
     def to_list(self):
         return list(v for v, _ in self._iter)
 
+    def count(self):
+        return sum(1 for _ in self._iter)
+
     def to_dict(self, key=None):
         """
         CONVERT STREAM TO dict
@@ -234,15 +268,13 @@ class ObjectStream(Stream):
     ):
         from zipfile import ZipFile, ZipInfo
 
-        type_= self.type_.type_
+        type_ = self.type_.type_
         if type_ is File:
             pass
         elif type_ is File_usingStream:
             pass
         else:
             raise NotImplementedError("expecting stream of Files")
-
-
 
         def read():
             mode = "w"

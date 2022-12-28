@@ -27,6 +27,8 @@ class Typer:
             inspect.signature(function)
         elif example:
             self.type_ = type(example)
+        elif type_ is LazyTyper:
+            self.__class__ = LazyTyper
         else:
             self.type_ = type_
 
@@ -88,6 +90,31 @@ class CallableTyper(Typer):
 
     def __str__(self):
         return f"CallableTyper(return_type={self.type_.__name__})"
+
+
+class UnknownTyper(Typer):
+    """
+    MANY TIMES WE DO NOT KNOW THE TYPE, BUT MAYBE WE NEVER NEED IT
+    """
+
+    def __init__(self, error):
+        Typer.__init__(self)
+        self._error: Exception = error
+
+    def __getattr__(self, item):
+        def build(type_):
+            return getattr(type_, item)
+
+        return UnknownTyper(build)
+
+    def __call__(self, *args, **kwargs):
+        def build(type_):
+            return type_
+
+        return UnknownTyper(build)
+
+    def __str__(self):
+        return "UnknownTyper()"
 
 
 class LazyTyper(Typer):

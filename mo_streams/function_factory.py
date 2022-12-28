@@ -9,9 +9,10 @@
 import inspect
 from types import FunctionType
 
-from mo_logs import logger
+from mo_logs import logger, Except
+from mo_logs.exceptions import ERROR, get_stacktrace
 
-from mo_streams.type_utils import Typer, LazyTyper, CallableTyper
+from mo_streams.type_utils import Typer, LazyTyper, CallableTyper, UnknownTyper
 
 _get = object.__getattribute__
 _set = object.__setattr__
@@ -21,9 +22,10 @@ class FunctionFactory:
     """
     See mo-streams/docs/function_factory.md
     """
+
     def __init__(self, builder, type_, desc):
         if not isinstance(type_, Typer):
-            logger.error("expecting type")
+            logger.error("expecting type, not {{type}}", type=type_)
         _set(self, "build", builder)
         _set(self, "type_", type_)
         _set(self, "_desc", desc)
@@ -46,6 +48,20 @@ class FunctionFactory:
         return FunctionFactory(
             builder, getattr(_get(self, "type_"), item), f"{self}.{item}"
         )
+
+    def __eq__(self, other):
+        func_other = factory(other)
+
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                return s(v, a) == o(v, a)
+
+            return func
+
+        return FunctionFactory(builder, Typer(type_=bool), f"{other} == {self}")
 
     def __radd__(self, other):
         if isinstance(other, FunctionFactory):
@@ -94,7 +110,7 @@ class FunctionFactory:
         return _get(self, "_desc")
 
 
-def factory(item, type_=None):
+def factory(item, self_type=None, return_type=None):
     if isinstance(item, (str, bytes, bool, int, float)):
         # CONSTANT
         def build_constant(type_, _schema):
@@ -104,12 +120,12 @@ def factory(item, type_=None):
     elif isinstance(item, FunctionFactory):
         return item
     else:
-        normalized_func, type_ = wrap_func(item, type_)
+        normalized_func, return_type = wrap_func(item, return_type=return_type)
 
         def builder3(type_, _schema):
             return normalized_func
 
-        return FunctionFactory(builder3, type_, f"returning {type_}")
+        return FunctionFactory(builder3, return_type, f"returning {return_type}")
 
 
 def build(item):
@@ -147,7 +163,12 @@ singleArgTypes = [
 ]
 
 
-def wrap_func(func, type_):
+def wrap_func(func, return_type=None):
+    try:
+        func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
+    except Exception:
+        func_name = str(func)
+
     if func in singleArgBuiltins:
         spec = inspect.getfullargspec(func)
     elif func.__class__.__name__ == "staticmethod":
@@ -157,6 +178,7 @@ def wrap_func(func, type_):
         spec = inspect.getfullargspec(func)
     elif func in singleArgTypes:
         spec = inspect.FullArgSpec(["value"], None, None, None, [], None, {})
+        return_type = func
     elif isinstance(func, type):
         spec = inspect.getfullargspec(func.__init__)
         new_func = func.__call__
@@ -186,8 +208,20 @@ def wrap_func(func, type_):
     else:
         num_args = len(spec.args)
 
-    if num_args == 0:
+    if not return_type:
+        return_type = spec.annotations.get("return")
+    if return_type:
+        return_type = Typer(type_=return_type)
+    else:
+        cause = Except(
+            ERROR,
+            "expecting {{function}} to have annotated return type",
+            {"function": func_name},
+            trace=get_stacktrace(start=3)
+        )
+        return_type = UnknownTyper(cause)
 
+    if num_args == 0:
         def wrapper0(val, att):
             return func()
 
@@ -199,16 +233,12 @@ def wrap_func(func, type_):
 
         wrapper = wrapper1
     else:
-        return func, type_
+        return func, return_type
 
     # copy func name to wrapper for sensible debug output
-    try:
-        func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
-    except Exception:
-        func_name = str(func)
     wrapper.__name__ = func_name
 
-    return wrapper, type_
+    return wrapper, return_type
 
 
 class TopFunctionFactory(FunctionFactory):
@@ -232,5 +262,9 @@ class TopFunctionFactory(FunctionFactory):
         return "it"
 
 
-it = factory(lambda v, a: v, LazyTyper())
+def noop(v, a) -> LazyTyper:
+    return v
+
+
+it = factory(noop)
 it.__class__ = TopFunctionFactory

@@ -18,6 +18,7 @@ from mo_logs import logger
 ByteStream = expect("ByteStream")
 START, CURRENT, END = 0, 1, 2
 
+
 class Stream:
     pass
 
@@ -64,8 +65,6 @@ class Reader(BinaryIO):
     def seek(self, position, whence=START):
         if whence == END:
             everything = BytesIO(b"".join(self._chunks))
-
-
 
         if self.count > position:
             raise NotImplementedError()
