@@ -4,3 +4,4 @@ zstandard
 boto3
 moto
 pandas
+mo-threads
