@@ -92,7 +92,8 @@ class TestStream(TestCase):
     @mock_s3
     def test_zip_to_s3(self):
         s3 = boto3.resource("s3")
-        s3.create_bucket(Bucket="bucket")
+        bucket_name = "bucket-" + randoms.base64(5)
+        s3.create_bucket(Bucket=bucket_name)
 
         result = (
             stream({"data": [{"a": 1, "b": 2}]})
@@ -102,10 +103,10 @@ class TestStream(TestCase):
             .attach(name="test_" + it.key)
             .map(it(File_usingStream)(it.name, it.writer.content))
             .to_zip()
-            .to_s3(name="test", bucket="bucket")
+            .to_s3(name="test", bucket=bucket_name)
         )
 
-        bucket = s3.Bucket("bucket")
+        bucket = s3.Bucket(bucket_name)
         for obj in bucket.objects.all():
             key, body = obj.key, obj.get()["Body"].read()
             if key == "test":
