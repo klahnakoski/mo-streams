@@ -98,7 +98,7 @@ class TestStream(TestCase):
             stream({"data": [{"a": 1, "b": 2}]})
             .map(DataFrame)
             .attach(writer=it(Writer)())
-            .map(it.to_csv(it.writer, index=False, line_terminator="\n"))
+            .map(it.to_csv(it.writer, index=False, lineterminator="\n"))
             .attach(name="test_" + it.key)
             .map(it(File_usingStream)(it.name, it.writer.content))
             .to_zip()
