@@ -1,5 +1,11 @@
 # More Streams!!
 
+[![PyPI Latest Release](https://img.shields.io/pypi/v/mo-streams.svg)](https://pypi.org/project/mo-streams/)
+[![Build Status](https://app.travis-ci.com/klahnakoski/mo-streams.svg?branch=master)](https://travis-ci.com/github/klahnakoski/mo-streams)
+ [![Coverage Status](https://coveralls.io/repos/github/klahnakoski/mo-streams/badge.svg?branch=dev)](https://coveralls.io/github/klahnakoski/mo-streams?branch=dev)
+[![Downloads](https://pepy.tech/badge/mo-streams/month)](https://pepy.tech/project/mo-streams)
+
+
 Python code is more elegant with method chaining!
 
 
