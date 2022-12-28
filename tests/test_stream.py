@@ -92,14 +92,14 @@ class TestStream(TestCase):
     @mock_s3
     def test_zip_to_s3(self):
         s3 = boto3.resource("s3")
-        bucket_name = "bucket-" + randoms.base64(5)
+        bucket_name = "bucket-" + randoms.hex(10)
         bucket = s3.create_bucket(Bucket=bucket_name)
 
         result = (
             stream({"data": [{"a": 1, "b": 2}]})
             .map(DataFrame)
             .attach(writer=it(Writer)())
-            .map(it.to_csv(it.writer, index=False, lineterminator="\n"))
+            .map(it.to_csv(it.writer, index=False, line_terminator="\n"))
             .attach(name="test_" + it.key)
             .map(it(File_usingStream)(it.name, it.writer.content))
             .to_zip()
