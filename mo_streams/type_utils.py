@@ -27,6 +27,8 @@ class Typer:
             inspect.signature(function)
         elif example:
             self.type_ = type(example)
+        elif type_ is LazyTyper:
+            self.__class__ = LazyTyper
         else:
             self.type_ = type_
 

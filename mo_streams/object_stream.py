@@ -9,12 +9,12 @@
 from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
-from mo_files import File
 from mo_future import zip_longest, first
 from mo_imports import expect, export
+from mo_json import JxType, JX_INTEGER
 from mo_logs import logger
 
-from mo_json import JxType, JX_INTEGER
+from mo_files import File
 from mo_streams import ByteStream
 from mo_streams._utils import (
     Reader,
@@ -28,6 +28,10 @@ from mo_streams.function_factory import factory
 from mo_streams.type_utils import Typer, LazyTyper
 
 stream = expect("stream")
+
+ERROR = {}
+WARNING = {}
+NONE = {}
 
 
 class ObjectStream(Stream):
@@ -104,7 +108,7 @@ class ObjectStream(Stream):
                     yield do_accessor(v, a), a
                 except (StopIteration, GeneratorExit):
                     raise
-                except Exception:
+                except Exception as cause:
                     yield None, a
 
         if isinstance(fact.type_, LazyTyper):
@@ -125,7 +129,7 @@ class ObjectStream(Stream):
                         yield v, a
                 except (StopIteration, GeneratorExit):
                     raise
-                except Exception:
+                except Exception as cause:
                     pass
 
         return ObjectStream(read(), self.type_, self._schema)

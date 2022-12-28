@@ -24,7 +24,7 @@ class FunctionFactory:
 
     def __init__(self, builder, type_, desc):
         if not isinstance(type_, Typer):
-            logger.error("expecting type")
+            logger.error("expecting type, not {{type}}", type=type_)
         _set(self, "build", builder)
         _set(self, "type_", type_)
         _set(self, "_desc", desc)
@@ -47,6 +47,20 @@ class FunctionFactory:
         return FunctionFactory(
             builder, getattr(_get(self, "type_"), item), f"{self}.{item}"
         )
+
+    def __eq__(self, other):
+        func_other = factory(other)
+
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                return s(v, a) == o(v, a)
+
+            return func
+
+        return FunctionFactory(builder, Typer(type_=bool), f"{other} == {self}")
 
     def __radd__(self, other):
         if isinstance(other, FunctionFactory):
@@ -105,7 +119,7 @@ def factory(item, type_=None):
     elif isinstance(item, FunctionFactory):
         return item
     else:
-        normalized_func, type_ = wrap_func(item, type_)
+        normalized_func, type_ = wrap_func(item)
 
         def builder3(type_, _schema):
             return normalized_func
@@ -148,7 +162,12 @@ singleArgTypes = [
 ]
 
 
-def wrap_func(func, type_):
+def wrap_func(func):
+    try:
+        func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
+    except Exception:
+        func_name = str(func)
+
     if func in singleArgBuiltins:
         spec = inspect.getfullargspec(func)
     elif func.__class__.__name__ == "staticmethod":
@@ -187,8 +206,15 @@ def wrap_func(func, type_):
     else:
         num_args = len(spec.args)
 
-    if num_args == 0:
+    return_type = spec.annotations.get("return")
+    if not return_type:
+        logger.error(
+            "expecting {{function}} to have annotated return type",
+            function=func_name,
+        )
+    return_type = Typer(type_=return_type)
 
+    if num_args == 0:
         def wrapper0(val, att):
             return func()
 
@@ -200,16 +226,12 @@ def wrap_func(func, type_):
 
         wrapper = wrapper1
     else:
-        return func, type_
+        return func, return_type
 
     # copy func name to wrapper for sensible debug output
-    try:
-        func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
-    except Exception:
-        func_name = str(func)
     wrapper.__name__ = func_name
 
-    return wrapper, type_
+    return wrapper, return_type
 
 
 class TopFunctionFactory(FunctionFactory):
@@ -233,5 +255,9 @@ class TopFunctionFactory(FunctionFactory):
         return "it"
 
 
-it = factory(lambda v, a: v, LazyTyper())
+def noop(v, a) -> LazyTyper:
+    return v
+
+
+it = factory(noop)
 it.__class__ = TopFunctionFactory
