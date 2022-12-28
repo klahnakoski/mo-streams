@@ -88,6 +88,6 @@
     "name": "mo-streams",
     "packages": ["mo_streams"],
     "url": "https://github.com/klahnakoski/mo-streams",
-    "version": "1.310.22362",
+    "version": "1.311.22362",
     "zip_safe": false
 }
