@@ -73,8 +73,16 @@ class TestStream(TestCase):
         result = stream([2, 2, 2, 1, 4, 3, 1]).distinct().to_list()
         self.assertEqual(result, [2, 1, 4, 3])
 
-    def test_limit(self):
+    def test_limit_under(self):
         result = stream(range(200)).limit(10).to_list()
+        self.assertEqual(result, list(range(10)))
+
+    def test_limit_over(self):
+        result = stream(range(5)).limit(10).to_list()
+        self.assertEqual(result, list(range(5)))
+
+    def test_limit_match(self):
+        result = stream(range(10)).limit(10).to_list()
         self.assertEqual(result, list(range(10)))
 
     def test_to_zip2(self):
@@ -139,6 +147,27 @@ class TestStream(TestCase):
     def test_filter(self):
         result = stream([1, 2, 3]).filter(lambda v: v % 2).to_list()
         self.assertEqual(result, [1, 3])
+
+    def test_group1(self):
+        result = (
+            stream([1, 2, 3])
+            .group(lambda v: v % 2)
+            .map(lambda v, a: {"group": a["group"], "value": v.to_list()})
+            .to_list()
+        )
+        self.assertEqual(
+            result, [{"group": 0, "value": [2]}, {"group": 1, "value": [1, 3]}]
+        )
+
+    def test_group2(self):
+        result = (
+            stream([1, 2, 3])
+            .group(lambda v: v % 2)
+            .map(it.sum())
+            .map(lambda v, a: {"group": a["group"], "value": v})
+            .to_list()
+        )
+        self.assertEqual(result, [{"group": 0, "value": 2}, {"group": 1, "value": 4}])
 
 
 def length(value):

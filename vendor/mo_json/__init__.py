@@ -10,11 +10,9 @@
 from __future__ import absolute_import, division, unicode_literals
 
 import math
-import re
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 from hjson import loads as hjson2value
-
 from mo_dots import (
     Data,
     FlatList,
@@ -25,16 +23,16 @@ from mo_dots import (
     null_types,
 )
 from mo_dots.objects import DataObject
+from mo_logs import Except, Log, strings
+from mo_logs.strings import expand_template
+from mo_times import Date, Duration
+
 from mo_future import (
     integer_types,
     is_binary,
     is_text,
-    PY3,
 )
 from mo_json.types import *
-from mo_logs import Except, Log, strings
-from mo_logs.strings import expand_template
-from mo_times import Date, Duration
 
 FIND_LOOPS = False
 SNAP_TO_BASE_10 = (
@@ -443,24 +441,14 @@ def json2value(json_string, params=Null, flexible=False, leaves=False):
         )
 
 
-if PY3:
 
-    def bytes2hex(value, separator=" "):
-        return separator.join("{:02X}".format(x) for x in value)
-
-
-else:
-
-    def bytes2hex(value, separator=" "):
-        return separator.join("{:02X}".format(ord(x)) for x in value)
+def bytes2hex(value, separator=" "):
+    return separator.join("{:02X}".format(x) for x in value)
 
 
-if PY3:
-    from datetime import timezone
 
-    DATETIME_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
-else:
-    DATETIME_EPOCH = datetime(1970, 1, 1)
+DATETIME_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
 DATE_EPOCH = date(1970, 1, 1)
 
 
