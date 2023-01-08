@@ -12,9 +12,10 @@ from decimal import Decimal
 from math import isnan
 
 from mo_dots import split_field, NullType, is_many, is_data, concat_field, is_sequence
-from mo_future import text, none_type, PY2, long, items, first, POS_INF
 from mo_logs import Log
 from mo_times import Date
+
+from mo_future import text, none_type, items, first, POS_INF
 
 
 def to_jx_type(value):
@@ -354,11 +355,6 @@ _python_type_to_jx_type = {
     datetime: JX_TIME,
     date: JX_TIME,
 }
-
-if PY2:
-    _python_type_to_jx_type[str] = JX_TEXT
-    _python_type_to_jx_type[long] = JX_INTEGER
-
 
 for k, v in items(_python_type_to_jx_type):
     _python_type_to_jx_type[k.__name__] = v

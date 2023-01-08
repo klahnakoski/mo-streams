@@ -6,15 +6,16 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
+import itertools
 from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
-from mo_future import zip_longest, first
+from mo_files import File
 from mo_imports import expect, export
-from mo_json import JxType, JX_INTEGER
 from mo_logs import logger
 
-from mo_files import File
+from mo_future import zip_longest, first
+from mo_json import JxType, JX_INTEGER
 from mo_streams import ByteStream
 from mo_streams._utils import (
     Reader,
@@ -27,6 +28,7 @@ from mo_streams.files import File_usingStream
 from mo_streams.function_factory import factory
 from mo_streams.type_utils import Typer, LazyTyper
 
+_get = object.__getattribute__
 stream = expect("stream")
 
 ERROR = {}
@@ -47,7 +49,7 @@ class ObjectStream(Stream):
             )
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
         self.type_: Typer = datatype
-        self._schema = schema
+        self._schema: JxType = schema
 
     def __getattr__(self, item):
         type_ = getattr(self.type_, item)
@@ -133,7 +135,6 @@ class ObjectStream(Stream):
                     pass
 
         return ObjectStream(read(), self.type_, self._schema)
-
 
     def attach(self, **kwargs):
         facts = {k: factory(v) for k, v in kwargs.items()}
@@ -238,6 +239,33 @@ class ObjectStream(Stream):
 
         return ObjectStream(read(), self.type_, self._schema)
 
+    def group(self, groupor):
+        if isinstance(groupor, str):
+            raw_group_function = lambda v: getattr(v, groupor)
+        else:
+            raw_group_function = groupor
+
+        group_factory = factory(raw_group_function, self_type=self.type_)
+        group_function = lambda pair: group_factory.build(self.type_, self._schema)(*pair)
+        more_schema = JxType()  # NOT AT REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
+        setattr(more_schema, "group", group_factory.type_)
+        sub_schema = self._schema | more_schema
+
+        def read():
+            for group, rows in itertools.groupby(sorted(self._iter, key=group_function), group_function):
+                def read_rows():
+                    for v, a in rows:
+                        yield v, {**a, "group": group}
+
+                yield ObjectStream(read_rows(), self.type_, sub_schema), {"group": group}
+
+        return ObjectStream(read(), Typer(type_=ObjectStream), more_schema)
+
+
+    ###########################################################################
+    # TERMINATORS
+    ###########################################################################
+
     def materialize(self):
         return ObjectStream(list(self._iter), self.type_, self._schema)
 
@@ -246,6 +274,9 @@ class ObjectStream(Stream):
 
     def count(self):
         return sum(1 for _ in self._iter)
+
+    def sum(self):
+        return sum(v for v, _ in self._iter)
 
     def to_dict(self, key=None):
         """
