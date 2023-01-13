@@ -169,6 +169,10 @@ class TestStream(TestCase):
         )
         self.assertEqual(result, [{"group": 0, "value": 2}, {"group": 1, "value": 4}])
 
+    def test_first(self):
+        result = stream([1, 2, 3]).first()
+        self.assertEqual(result, 1)
+
 
 def length(value):
     return len(value)

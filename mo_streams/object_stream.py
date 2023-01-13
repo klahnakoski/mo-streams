@@ -278,6 +278,10 @@ class ObjectStream(Stream):
     def sum(self):
         return sum(v for v, _ in self._iter)
 
+    def first(self):
+        for v, _ in self._iter:
+            return v
+
     def to_dict(self, key=None):
         """
         CONVERT STREAM TO dict
