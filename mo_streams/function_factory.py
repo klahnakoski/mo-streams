@@ -23,30 +23,30 @@ class FunctionFactory:
     See mo-streams/docs/function_factory.md
     """
 
-    def __init__(self, builder, type_, desc):
-        if not isinstance(type_, Typer):
-            logger.error("expecting type, not {{type}}", type=type_)
+    def __init__(self, builder, typer, desc):
+        if not isinstance(typer, Typer):
+            logger.error("expecting type, not {{type}}", type=typer)
         _set(self, "build", builder)
-        _set(self, "type_", type_)
+        _set(self, "typer", typer)
         _set(self, "_desc", desc)
 
     def __getattr__(self, item):
-        def builder(type_, _schema):
-            s = _get(self, "build")(type_, _schema)
-            if item in _schema:
+        def builder(typer, schema):
+            s = _get(self, "build")(typer, schema)
+            if item in schema:
 
                 def func(v, a):
                     return a[item]
 
                 return func
             elif isinstance(item, FunctionFactory):
-                i = item.build(type_, _schema)
+                i = item.build(typer, schema)
                 return lambda v, a: getattr(s(v, a), i(v, a))
             else:
                 return lambda v, a: getattr(s(v, a), item)
 
         return FunctionFactory(
-            builder, getattr(_get(self, "type_"), item), f"{self}.{item}"
+            builder, getattr(_get(self, "typer"), item), f"{self}.{item}"
         )
 
     def __eq__(self, other):
@@ -61,7 +61,7 @@ class FunctionFactory:
 
             return func
 
-        return FunctionFactory(builder, Typer(type_=bool), f"{other} == {self}")
+        return FunctionFactory(builder, Typer(python_type=bool), f"{other} == {self}")
 
     def __radd__(self, other):
         if isinstance(other, FunctionFactory):
@@ -80,17 +80,17 @@ class FunctionFactory:
 
             return func
 
-        type_ = Typer(example=other) + _get(self, "type_")
+        type_ = Typer(example=other) + _get(self, "typer")
         return FunctionFactory(builder, type_, f"{other} + {self}")
 
     def __call__(self, *args, **kwargs):
         args = [factory(a) for a in args]
         kwargs = {k: factory(v) for k, v in kwargs.items()}
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            _args = [a.build(type_, _schema) for a in args]
-            _kwargs = {k: v.build(type_, _schema) for k, v in kwargs.items()}
+        def builder(typer, schema):
+            s = self.build(typer, schema)
+            _args = [a.build(typer, schema) for a in args]
+            _kwargs = {k: v.build(typer, schema) for k, v in kwargs.items()}
 
             def func(v, a):
                 return s(v, a)(
@@ -104,7 +104,7 @@ class FunctionFactory:
         desc_args.extend(f"{k}={v}" for k, v in kwargs.items())
         params = ",".join(desc_args)
 
-        return FunctionFactory(builder, self.type_(), f"{self}({params})")
+        return FunctionFactory(builder, _get(self, "typer")(), f"{self}({params})")
 
     def __str__(self):
         return _get(self, "_desc")
@@ -189,13 +189,13 @@ def wrap_func(func, return_type=None):
             def wrap_init0(val, att):
                 return new_func()
 
-            return wrap_init0, Typer(type_=func)
+            return wrap_init0, Typer(python_type=func)
         else:
 
             def wrap_init1(val, att):
                 return new_func(val)
 
-            return wrap_init1, Typer(type_=func)
+            return wrap_init1, Typer(python_type=func)
     elif isinstance(func, FunctionType):
         spec = inspect.getfullargspec(func)
     elif hasattr(func, "__call__"):
@@ -211,7 +211,7 @@ def wrap_func(func, return_type=None):
     if not return_type:
         return_type = spec.annotations.get("return")
     if return_type:
-        return_type = Typer(type_=return_type)
+        return_type = Typer(python_type=return_type)
     else:
         cause = Except(
             ERROR,
@@ -254,9 +254,9 @@ class TopFunctionFactory(FunctionFactory):
             return lambda v, a: value
 
         if isinstance(value, type):
-            return FunctionFactory(builder, CallableTyper(type_=value), f"{value}")
+            return FunctionFactory(builder, CallableTyper(python_type=value), f"{value}")
 
-        return FunctionFactory(builder, Typer(type_=type(value)), f"{value}")
+        return FunctionFactory(builder, Typer(python_type=type(value)), f"{value}")
 
     def __str__(self):
         return "it"

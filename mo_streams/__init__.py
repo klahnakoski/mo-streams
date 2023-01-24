@@ -66,10 +66,10 @@ def stream(value):
 
 
 ANNOTATIONS = {
-    (str, "encode"): CallableTyper(type_=bytes),
-    (File_usingStream, "content"): CallableTyper(type_=ByteStream),
-    (File, "content"): CallableTyper(type_=ByteStream),
-    (ByteStream, "utf8"): CallableTyper(type_=StringStream),
+    (str, "encode"): CallableTyper(python_type=bytes),
+    (File_usingStream, "content"): CallableTyper(python_type=ByteStream),
+    (File, "content"): CallableTyper(python_type=ByteStream),
+    (ByteStream, "utf8"): CallableTyper(python_type=StringStream),
 }
 
 export("mo_streams.object_stream", stream)

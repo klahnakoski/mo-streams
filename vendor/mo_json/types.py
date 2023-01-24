@@ -167,6 +167,10 @@ class JxType(object):
         return "JxType(**" + str(self.__data__()) + ")"
 
 
+def array_of(type_):
+    return JxType(**{_A: type_})
+
+
 def base_type(type_):
     """
     TYPES OFTEN COME WITH SIMPLE NAMES THAT GET IN THE WAY OF THE "BASE TYPE"
