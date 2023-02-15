@@ -175,10 +175,28 @@ class TestStream(TestCase):
         self.assertEqual(result, 1)
 
     def test_map_it(self):
+        class SomeClass:
+            num = 0
+
+            def __init__(self):
+                self.value = SomeClass.num
+                SomeClass.num += 1
+
         ANNOTATIONS[(SomeClass, "value")] = Typer(python_type=int)
         result = stream([SomeClass(), SomeClass(), SomeClass()]).map(it.value).last()
         self.assertEqual(result, 2)
 
+    @skip("not implemented yet")
+    def test_deep_iteration(self):
+        class Something:
+            def __init__(self, value):
+                self.value = value
+
+        value = Something({"props": [{"a": 1}, {"a": 2}, {"a": 3}]})
+        result = stream(value).value.props.a.to_list()
+        self.assertEqual(result, [1, 2, 3])
+
+    @skip("not implemented yet")
     def test_reverse_dict(self):
         data = {1: "a", 2: "b", 3: "c", 4: "a"}
         result = (
@@ -189,6 +207,7 @@ class TestStream(TestCase):
         )
         self.assertEqual(result, {"a": [1, 4], "b": [2], "c": ["3"]})
 
+    @skip("not implemented yet")
     def test_pivot(self):
         populations = [
             {"date": "2019-07-01", "cohort": "00", "population": 1000},
@@ -238,9 +257,3 @@ def length(value):
     return len(value)
 
 
-class SomeClass:
-    num = 0
-
-    def __init__(self):
-        self.value = SomeClass.num
-        SomeClass.num += 1

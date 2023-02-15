@@ -10,6 +10,7 @@ import itertools
 from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
+from mo_dots import list_to_data
 from mo_files import File
 from mo_imports import expect, export
 from mo_logs import logger
@@ -262,7 +263,7 @@ class ObjectStream(Stream):
                 def read_rows():
                     for v, a in rows:
                         yield v, {**a, "group": group}
-
+                # THIS IS A BAD IDEA, ObjectStream CAN GET EXPENSIVE IN A LOOP
                 yield ObjectStream(read_rows(), self.typer, sub_schema), {"group": group}
 
         return ObjectStream(read(), StreamTyper(self.typer, sub_schema), group_schema)
@@ -277,6 +278,9 @@ class ObjectStream(Stream):
 
     def to_list(self):
         return list(v for v, _ in self._iter)
+
+    def to_data(self):
+        return list_to_data(list(v for v, _ in self._iter))
 
     def count(self):
         return sum(1 for _ in self._iter)
