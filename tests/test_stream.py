@@ -16,7 +16,7 @@ from mo_times import Date, YEAR
 from moto import mock_s3
 from pandas import DataFrame
 
-from mo_streams import stream, it, ANNOTATIONS, Typer
+from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream
 from mo_streams._utils import Writer
 from mo_streams.files import File_usingStream
 
@@ -251,6 +251,10 @@ class TestStream(TestCase):
             {"date": "2022-07-01", "cohort": "45", "population": 8000},
         ]
         self.assertEqual(result, expected)
+
+    def test_empty_attach(self):
+        stream = EmptyStream()
+        self.assertIsNone(stream.attach(a=22).sum())
 
 
 def length(value):

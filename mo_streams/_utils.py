@@ -7,7 +7,6 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 import inspect
-import os
 from io import RawIOBase, BytesIO
 from typing import BinaryIO
 

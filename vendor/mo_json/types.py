@@ -30,10 +30,7 @@ def to_jx_type(value):
 class JxType(object):
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
-            if isinstance(v, JxType):
-                setattr(self, k, v)
-            else:
-                Log.error("Not allowed")
+            setattr(self, k, v)
 
     def __or__(self, other):
         other = to_jx_type(other)
