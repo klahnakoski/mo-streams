@@ -58,6 +58,8 @@ class Typer:
     def __add__(self, other):
         if self.python_type is str or other.typer is str:
             return Typer(python_type=str)
+        if self.python_type in [int, float]:
+            return Typer(python_type=float)
         logger.error("not handled")
 
     def __call__(self, *args, **kwargs):

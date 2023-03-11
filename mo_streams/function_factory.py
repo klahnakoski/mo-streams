@@ -9,6 +9,7 @@
 import inspect
 from types import FunctionType
 
+from mo_dots import is_missing
 from mo_logs import logger, Except
 from mo_logs.exceptions import ERROR, get_stacktrace
 
@@ -62,6 +63,25 @@ class FunctionFactory:
             return func
 
         return FunctionFactory(builder, Typer(python_type=bool), f"{other} == {self}")
+
+    def __truediv__(self, other):
+        func_other = factory(other)
+
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                sv = s(v, a)
+                ov = o(v, a)
+                if is_missing(sv) or is_missing(ov):
+                    return None
+                return sv/ov
+
+            return func
+
+        return FunctionFactory(builder, Typer(python_type=float), f"{other} / {self}")
+
 
     def __radd__(self, other):
         if isinstance(other, FunctionFactory):

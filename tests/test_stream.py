@@ -199,12 +199,7 @@ class TestStream(TestCase):
     @skip("not implemented yet")
     def test_reverse_dict(self):
         data = {1: "a", 2: "b", 3: "c", 4: "a"}
-        result = (
-            stream(data)
-            .group(it)
-            .map(it.key.to_list())
-            .to_dict(key="group")
-        )
+        result = stream(data).group(it).map(it.key.to_list()).to_dict(key="group")
         self.assertEqual(result, {"a": [1, 4], "b": [2], "c": ["3"]})
 
     @skip("not implemented yet")
@@ -256,8 +251,14 @@ class TestStream(TestCase):
         stream = EmptyStream()
         self.assertIsNone(stream.attach(a=22).sum())
 
+    def test_div(self):
+        self.assertEqual(
+            stream([1, 2, None, 3]).map(it / 100).to_list(), [0.01, 0.02, None, 0.03]
+        )
+
+    def test_radd(self):
+        self.assertEqual(stream([1, 2, None, 3]).map(3 + it).to_list(), [4, 5, None, 6])
+
 
 def length(value):
     return len(value)
-
-
