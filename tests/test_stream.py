@@ -12,10 +12,11 @@ from unittest import TestCase, skipIf, skip
 import boto3
 from mo_files import File, TempFile
 from mo_math import randoms
+from mo_times import Date, YEAR
 from moto import mock_s3
 from pandas import DataFrame
 
-from mo_streams import stream, it
+from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream
 from mo_streams._utils import Writer
 from mo_streams.files import File_usingStream
 
@@ -168,6 +169,95 @@ class TestStream(TestCase):
             .to_list()
         )
         self.assertEqual(result, [{"group": 0, "value": 2}, {"group": 1, "value": 4}])
+
+    def test_first(self):
+        result = stream([1, 2, 3]).first()
+        self.assertEqual(result, 1)
+
+    def test_map_it(self):
+        class SomeClass:
+            num = 0
+
+            def __init__(self):
+                self.value = SomeClass.num
+                SomeClass.num += 1
+
+        ANNOTATIONS[(SomeClass, "value")] = Typer(python_type=int)
+        result = stream([SomeClass(), SomeClass(), SomeClass()]).map(it.value).last()
+        self.assertEqual(result, 2)
+
+    @skip("not implemented yet")
+    def test_deep_iteration(self):
+        class Something:
+            def __init__(self, value):
+                self.value = value
+
+        value = Something({"props": [{"a": 1}, {"a": 2}, {"a": 3}]})
+        result = stream(value).value.props.a.to_list()
+        self.assertEqual(result, [1, 2, 3])
+
+    @skip("not implemented yet")
+    def test_reverse_dict(self):
+        data = {1: "a", 2: "b", 3: "c", 4: "a"}
+        result = stream(data).group(it).map(it.key.to_list()).to_dict(key="group")
+        self.assertEqual(result, {"a": [1, 4], "b": [2], "c": ["3"]})
+
+    @skip("not implemented yet")
+    def test_pivot(self):
+        populations = [
+            {"date": "2019-07-01", "cohort": "00", "population": 1000},
+            {"date": "2019-07-01", "cohort": "45", "population": 2000},
+            {"date": "2020-07-01", "cohort": "00", "population": 3000},
+            {"date": "2020-07-01", "cohort": "45", "population": 4000},
+            {"date": "2021-07-01", "cohort": "00", "population": 5000},
+            {"date": "2021-07-01", "cohort": "45", "population": 6000},
+        ]
+
+        last_year = "2020-07-01"
+        this_year = "2021-07-01"
+        next_year = (Date(this_year) + YEAR).format("%Y-%m-%d")
+        years = [this_year, last_year, next_year]
+        result = (
+            stream(populations)
+            # select records we need
+            .filter(it.date in years)
+            # transpose (pivot date to rows)
+            .pivot(values="population", index="cohort", columns="date")
+            # calc
+            .attach(2 * it[this_year] - it[last_year], next_year)
+            # melt dates back to rows
+            .melt(
+                id_vars=["cohort"],
+                value_vars=years,
+                var_name="date",
+                value_name="population",
+            )
+            # add to original table
+            .append_to(populations)
+        )
+        expected = [
+            {"date": "2019-07-01", "cohort": "00", "population": 1000},
+            {"date": "2019-07-01", "cohort": "45", "population": 2000},
+            {"date": "2020-07-01", "cohort": "00", "population": 3000},
+            {"date": "2020-07-01", "cohort": "45", "population": 4000},
+            {"date": "2021-07-01", "cohort": "00", "population": 5000},
+            {"date": "2021-07-01", "cohort": "45", "population": 6000},
+            {"date": "2022-07-01", "cohort": "00", "population": 7000},
+            {"date": "2022-07-01", "cohort": "45", "population": 8000},
+        ]
+        self.assertEqual(result, expected)
+
+    def test_empty_attach(self):
+        stream = EmptyStream()
+        self.assertIsNone(stream.attach(a=22).sum())
+
+    def test_div(self):
+        self.assertEqual(
+            stream([1, 2, None, 3]).map(it / 100).to_list(), [0.01, 0.02, None, 0.03]
+        )
+
+    def test_radd(self):
+        self.assertEqual(stream([1, 2, None, 3]).map(3 + it).to_list(), [4, 5, None, 6])
 
 
 def length(value):

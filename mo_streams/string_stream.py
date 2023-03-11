@@ -25,7 +25,7 @@ class StringStream(Stream):
             for v in self._chunks:
                 yield getattr(v, item), {}
 
-        return ObjectStream(read(), getattr(Typer(type_=str), item), JxType())
+        return ObjectStream(read(), getattr(Typer(python_type=str), item), JxType())
 
     def utf8(self) -> ByteStream:
         return ByteStream(Reader((c.encode("utf8") for c in self._chunks)))
@@ -49,7 +49,7 @@ class StringStream(Stream):
                 if line:
                     yield line, {}
 
-        return ObjectStream(read, Typer(type_=str), JxType())
+        return ObjectStream(read, Typer(python_type=str), JxType())
 
     def to_str(self) -> str:
         return "".join(self._chunks)

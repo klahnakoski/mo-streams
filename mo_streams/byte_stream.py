@@ -52,7 +52,7 @@ class ByteStream(Stream):
             finally:
                 reader.close()
 
-        return ObjectStream(read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT))
+        return ObjectStream(read(), Typer(python_type=File_usingStream), JxType(name=JX_TEXT))
 
     def from_zst(self):
         """
@@ -92,7 +92,7 @@ class ByteStream(Stream):
             finally:
                 self.reader.close()
 
-        return ObjectStream(read(), Typer(type_=File_usingStream), JxType(name=JX_TEXT))
+        return ObjectStream(read(), Typer(python_type=File_usingStream), JxType(name=JX_TEXT))
 
     def to_zst(self):
         from zstandard import ZstdCompressor
