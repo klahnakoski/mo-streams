@@ -7,6 +7,7 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 import os
+import sys
 from unittest import TestCase, skipIf, skip
 
 import boto3
@@ -21,6 +22,7 @@ from mo_streams._utils import Writer
 from mo_streams.files import File_usingStream
 
 IS_TRAVIS = bool(os.environ.get("TRAVIS"))
+line_terminator = "lineterminator" if sys.version_info[0] == 3 and sys.version_info[1] >= 8 else "line_terminator"
 
 
 class TestStream(TestCase):
@@ -108,7 +110,7 @@ class TestStream(TestCase):
             stream({"data": [{"a": 1, "b": 2}]})
             .map(DataFrame)
             .attach(writer=it(Writer)())
-            .map(it.to_csv(it.writer, index=False, line_terminator="\n"))
+            .map(it.to_csv(it.writer, index=False, **{line_terminator: "\n"}))
             .attach(name="test_" + it.key)
             .map(it(File_usingStream)(it.name, it.writer.content))
             .to_zip()
