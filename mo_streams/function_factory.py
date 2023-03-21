@@ -64,6 +64,62 @@ class FunctionFactory:
 
         return FunctionFactory(builder, Typer(python_type=bool), f"{other} == {self}")
 
+    def __gt__(self, other):
+        func_other = factory(other)
+
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                return s(v, a) > o(v, a)
+
+            return func
+
+        return FunctionFactory(builder, Typer(python_type=bool), f"{other} > {self}")
+
+    def __ge__(self, other):
+        func_other = factory(other)
+
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                return s(v, a) >= o(v, a)
+
+            return func
+
+        return FunctionFactory(builder, Typer(python_type=bool), f"{other} >= {self}")
+
+    def __lt__(self, other):
+        func_other = factory(other)
+
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                return s(v, a) < o(v, a)
+
+            return func
+
+        return FunctionFactory(builder, Typer(python_type=bool), f"{other} < {self}")
+
+    def __le__(self, other):
+        func_other = factory(other)
+
+        def builder(type_, _schema):
+            s = self.build(type_, _schema)
+            o = func_other.build(type_, _schema)
+
+            def func(v, a):
+                return s(v, a) <= o(v, a)
+
+            return func
+
+        return FunctionFactory(builder, Typer(python_type=bool), f"{other} <= {self}")
+
     def __truediv__(self, other):
         func_other = factory(other)
 

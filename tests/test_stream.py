@@ -135,6 +135,12 @@ class TestStream(TestCase):
             )
             print(result)
 
+    def test_inequality(self):
+        self.assertEqual(stream([1, 2, 3]).filter(it > 2).to_list(), [3])
+        self.assertEqual(stream([1, 2, 3]).filter(it >= 2).to_list(), [2, 3])
+        self.assertEqual(stream([1, 2, 3]).filter(it < 2).to_list(), [1])
+        self.assertEqual(stream([1, 2, 3]).filter(it <= 2).to_list(), [1, 2])
+
     def test_map_int(self):
         result = stream(["1", "2", "3"]).map(int).to_list()
         self.assertEqual(result, [1, 2, 3])
