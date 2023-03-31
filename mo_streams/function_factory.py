@@ -7,6 +7,7 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 import inspect
+from collections import namedtuple
 from types import FunctionType
 
 from mo_dots import is_missing
@@ -17,6 +18,8 @@ from mo_streams.type_utils import Typer, LazyTyper, CallableTyper, UnknownTyper
 
 _get = object.__getattribute__
 _set = object.__setattr__
+
+BuiltFunction = namedtuple("BuiltFunction", ["function", "return_type", "schema"])
 
 
 class FunctionFactory:
@@ -32,19 +35,20 @@ class FunctionFactory:
         _set(self, "_desc", desc)
 
     def __getattr__(self, item):
-        def builder(typer, schema):
-            s = _get(self, "build")(typer, schema)
-            if item in schema:
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            f, t, s = _get(self, "build")(domain_type, domain_schema)
+            if item in s:
 
                 def func(v, a):
                     return a[item]
 
-                return func
+                return BuiltFunction(func, domain_schema[item], domain_schema)
             elif isinstance(item, FunctionFactory):
-                i = item.build(typer, schema)
-                return lambda v, a: getattr(s(v, a), i(v, a))
+                f, t, s = item.build(domain_type, domain_schema)
+
+                return BuiltFunction(lambda v, a: getattr(f(v, a), f(v, a)), UnknownTyper(Exception("too complicated to know type")), s)
             else:
-                return lambda v, a: getattr(s(v, a), item)
+                return BuiltFunction(lambda v, a: getattr(f(v, a), item), getattr(t, item), s)
 
         return FunctionFactory(
             builder, getattr(_get(self, "typer"), item), f"{self}.{item}"
@@ -53,91 +57,90 @@ class FunctionFactory:
     def __eq__(self, other):
         func_other = factory(other)
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            o = func_other.build(type_, _schema)
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
 
             def func(v, a):
-                return s(v, a) == o(v, a)
+                return sf(v, a) == of(v, a)
 
-            return func
+            return BuiltFunction(func, Typer(python_type=bool), domain_schema)
 
         return FunctionFactory(builder, Typer(python_type=bool), f"{other} == {self}")
 
     def __gt__(self, other):
         func_other = factory(other)
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            o = func_other.build(type_, _schema)
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
 
             def func(v, a):
-                return s(v, a) > o(v, a)
+                return sf(v, a) > of(v, a)
 
-            return func
+            return BuiltFunction(func, Typer(python_type=bool), domain_schema)
 
         return FunctionFactory(builder, Typer(python_type=bool), f"{other} > {self}")
 
     def __ge__(self, other):
         func_other = factory(other)
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            o = func_other.build(type_, _schema)
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
 
             def func(v, a):
-                return s(v, a) >= o(v, a)
+                return sf(v, a) >= of(v, a)
 
-            return func
+            return BuiltFunction(func, Typer(python_type=bool), domain_schema)
 
         return FunctionFactory(builder, Typer(python_type=bool), f"{other} >= {self}")
 
     def __lt__(self, other):
         func_other = factory(other)
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            o = func_other.build(type_, _schema)
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
 
             def func(v, a):
-                return s(v, a) < o(v, a)
+                return sf(v, a) < of(v, a)
 
-            return func
+            return BuiltFunction(func, Typer(python_type=bool), domain_schema)
 
         return FunctionFactory(builder, Typer(python_type=bool), f"{other} < {self}")
 
     def __le__(self, other):
         func_other = factory(other)
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            o = func_other.build(type_, _schema)
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
 
             def func(v, a):
-                return s(v, a) <= o(v, a)
+                return sf(v, a) <= of(v, a)
 
-            return func
+            return BuiltFunction(func, Typer(python_type=bool), domain_schema)
 
         return FunctionFactory(builder, Typer(python_type=bool), f"{other} <= {self}")
 
     def __truediv__(self, other):
         func_other = factory(other)
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            o = func_other.build(type_, _schema)
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
 
             def func(v, a):
-                sv = s(v, a)
-                ov = o(v, a)
+                sv = sf(v, a)
+                ov = of(v, a)
                 if is_missing(sv) or is_missing(ov):
                     return None
                 return sv/ov
 
-            return func
+            return BuiltFunction(func, Typer(python_type=float), domain_schema)
 
         return FunctionFactory(builder, Typer(python_type=float), f"{other} / {self}")
-
 
     def __radd__(self, other):
         if isinstance(other, FunctionFactory):
@@ -147,14 +150,14 @@ class FunctionFactory:
                 lambda v, a: other, Typer(example=other), str(other)
             )
 
-        def builder(type_, _schema):
-            s = self.build(type_, _schema)
-            o = func_other.build(type_, _schema)
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
 
             def func(v, a):
-                return o + s(v, a)
+                return of(v, a) + sf(v, a)
 
-            return func
+            return BuiltFunction(func, st, domain_schema)
 
         type_ = Typer(example=other) + _get(self, "typer")
         return FunctionFactory(builder, type_, f"{other} + {self}")
@@ -163,18 +166,18 @@ class FunctionFactory:
         args = [factory(a) for a in args]
         kwargs = {k: factory(v) for k, v in kwargs.items()}
 
-        def builder(typer, schema):
-            s = self.build(typer, schema)
-            _args = [a.build(typer, schema) for a in args]
-            _kwargs = {k: v.build(typer, schema) for k, v in kwargs.items()}
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            _args = [a.build(domain_type, domain_schema).function for a in args]
+            _kwargs = {k: v.build(domain_type, domain_schema).function for k, v in kwargs.items()}
 
             def func(v, a):
-                return s(v, a)(
+                return sf(v, a)(
                     *(f(v, a) for f in _args),
                     **{k: f(v, a) for k, f in _kwargs.items()},
                 )
 
-            return func
+            return BuiltFunction(func, st(), domain_schema)
 
         desc_args = [str(a) for a in args]
         desc_args.extend(f"{k}={v}" for k, v in kwargs.items())
@@ -186,11 +189,11 @@ class FunctionFactory:
         return _get(self, "_desc")
 
 
-def factory(item, self_type=None, return_type=None):
+def factory(item, return_type=None):
     if isinstance(item, (str, bytes, bool, int, float)):
         # CONSTANT
-        def build_constant(type_, _schema):
-            return lambda v, a: item
+        def build_constant(domain_type, domain_schema) -> BuiltFunction:
+            return BuiltFunction(lambda v, a: item, Typer(example=item), domain_schema)
 
         return FunctionFactory(build_constant, Typer(example=item), f"{item}")
     elif isinstance(item, FunctionFactory):
@@ -198,20 +201,22 @@ def factory(item, self_type=None, return_type=None):
     else:
         normalized_func, return_type = wrap_func(item, return_type=return_type)
 
-        def builder3(type_, _schema):
-            return normalized_func
+        def builder3(domain_type, domain_schema) -> BuiltFunction:
+            return BuiltFunction(normalized_func, return_type or domain_type, domain_schema)
 
         return FunctionFactory(builder3, return_type, f"returning {return_type}")
 
 
-def build(item):
-    if isinstance(item, FunctionFactory):
-        return item.build
 
-    def builder(type_, _schema):
-        return lambda v, a: item
-
-    return builder
+#
+# def build(item) -> BuiltFunction:
+#     if isinstance(item, FunctionFactory):
+#         return item.build
+#
+#     def builder(domain_type, domain_schema) -> BuiltFunction:
+#         return BuiltFunction(lambda v, a: item, Typer(example=item), domain_schema)
+#
+#     return builder
 
 
 # build list of single arg builtins, that can be used as parse actions
@@ -237,6 +242,7 @@ singleArgTypes = [
     complex,
     dict,
 ]
+
 
 
 def wrap_func(func, return_type=None):
@@ -326,8 +332,8 @@ class TopFunctionFactory(FunctionFactory):
         if isinstance(value, FunctionFactory):
             logger.error("don't do this")
 
-        def builder(type_, _schema):
-            return lambda v, a: value
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            return BuiltFunction(lambda v, a: value, domain_type, domain_schema)
 
         if isinstance(value, type):
             return FunctionFactory(builder, CallableTyper(python_type=value), f"{value}")

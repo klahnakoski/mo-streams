@@ -134,7 +134,6 @@ class StreamTyper(Typer):
         return f"StreamTyper({self.type_})"
 
 
-
 class CallableTyper(Typer):
     """
     ASSUME THIS WILL BE CALLED, AND THIS IS THE TYPE RETURNED
@@ -164,6 +163,10 @@ class UnknownTyper(Typer):
     def __init__(self, error):
         Typer.__init__(self)
         self._error: Exception = error
+
+
+    def __bool__(self):
+        return False
 
     def __getattr__(self, item):
         def build(type_):

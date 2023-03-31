@@ -108,7 +108,7 @@ class ByteStream(Stream):
         return StringStream(read())
 
     def lines(self):
-        return self.utf8.lines
+        return self.utf8().lines()
 
     def chunk(self, size=8192):
         return ObjectStream(chunk_bytes(self.reader, size), b"", bytes, {}, JxType())

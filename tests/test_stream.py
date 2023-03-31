@@ -11,12 +11,15 @@ import sys
 from unittest import TestCase, skipIf, skip
 
 import boto3
+from mo_dots import exists, Data
 from mo_files import File, TempFile
+from mo_logs import logger
 from mo_math import randoms
 from mo_times import Date, YEAR
 from moto import mock_s3
 from pandas import DataFrame
 
+from mo_json import json2value
 from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream
 from mo_streams._utils import Writer
 from mo_streams.files import File_usingStream
@@ -42,6 +45,25 @@ class TestStream(TestCase):
         file = File("tests/resources/so_queries.tar.zst")
         content = file.content().content().exists().utf8().to_str().to_list()
         self.assertEqual(len(content), 6191)
+
+    def test_work_on_files(self):
+
+        def analysis(lines):
+            ## expect list of Data
+            if not isinstance(lines, list):
+                logger.error("expecting list")
+            if not all(isinstance(d, Data) for d in lines):
+                logger.error("expecting Data")
+            return lines
+
+        result = (
+            File("tests/resources/data_in_zip.zip")
+                .content()
+                .map(it.content().lines().map(exists).map(json2value).to_list())
+                .map(analysis)
+                .to_list()
+        )
+        self.assertEqual(result, [[{"a": 1}, {"a": 2}, {"a": 3}], [{"c": 11}, {"c": 22}, {"c": 33}]])
 
     def test_from_zip(self):
         file = File("tests/resources/example.zip")
