@@ -59,7 +59,7 @@ class TestStream(TestCase):
         result = (
             File("tests/resources/data_in_zip.zip")
                 .content()
-                .map(it.content().lines().map(exists).map(json2value).to_list())
+                .map(it.content().lines().filter(exists).map(json2value).to_list())
                 .map(analysis)
                 .to_list()
         )

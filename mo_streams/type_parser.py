@@ -20,7 +20,7 @@ def parse(type_desc):
     """
     if isinstance(type_desc, type):
         # SOME TYPE ANNOTATIONS ARE ACTUAL TYPES, NOT STRINGS
-        return CallableTyper(python_type=type_desc)
+        return CallableTyper(return_type=type_desc)
 
     types = [
         clean for t in type_desc.split("|") for clean in [t.strip()] if clean != "None"
@@ -28,7 +28,7 @@ def parse(type_desc):
 
     if len(types) == 1:
         if types[0] == "str":
-            return CallableTyper(python_type=str)
+            return CallableTyper(return_type=str)
 
     raise NotImplementedError()
 

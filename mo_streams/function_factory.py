@@ -11,7 +11,7 @@ from collections import namedtuple
 from types import FunctionType
 
 from mo_dots import is_missing
-from mo_logs import logger, Except
+from mo_logs import logger, Except, strings
 from mo_logs.exceptions import ERROR, get_stacktrace
 
 from mo_streams.type_utils import Typer, LazyTyper, CallableTyper, UnknownTyper
@@ -20,7 +20,7 @@ _get = object.__getattribute__
 _set = object.__setattr__
 
 BuiltFunction = namedtuple("BuiltFunction", ["function", "return_type", "schema"])
-
+NO_ARGS = BuiltFunction(tuple(), tuple(), tuple())
 
 class FunctionFactory:
     """
@@ -166,24 +166,30 @@ class FunctionFactory:
         args = [factory(a) for a in args]
         kwargs = {k: factory(v) for k, v in kwargs.items()}
 
-        def builder(domain_type, domain_schema) -> BuiltFunction:
-            sf, st, ss = self.build(domain_type, domain_schema)
-            _args = [a.build(domain_type, domain_schema).function for a in args]
-            _kwargs = {k: v.build(domain_type, domain_schema).function for k, v in kwargs.items()}
-
-            def func(v, a):
-                return sf(v, a)(
-                    *(f(v, a) for f in _args),
-                    **{k: f(v, a) for k, f in _kwargs.items()},
-                )
-
-            return BuiltFunction(func, st(), domain_schema)
-
         desc_args = [str(a) for a in args]
         desc_args.extend(f"{k}={v}" for k, v in kwargs.items())
         params = ",".join(desc_args)
+        source = f"{self}({params})"
 
-        return FunctionFactory(builder, _get(self, "typer")(), f"{self}({params})")
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            _args = BuiltFunction(*zip(*(a.build(st, ss) for a in args))) if args else NO_ARGS
+            _kwargs = {k: v.build(st, ss).function for k, v in kwargs.items()}
+
+            def func(v, a):
+                try:
+                    return sf(v, a)(
+                        *(f(v, a) for f in _args.function),
+                        **{k: f(v, a) for k, f in _kwargs.items()},
+                    )
+                finally:
+                    logger.info("run {{source}}", source=source)
+
+            setattr(func, "source", source)
+
+            return BuiltFunction(func, st(*_args.return_type), domain_schema)
+
+        return FunctionFactory(builder, _get(self, "typer")(), source)
 
     def __str__(self):
         return _get(self, "_desc")
@@ -202,7 +208,9 @@ def factory(item, return_type=None):
         normalized_func, return_type = wrap_func(item, return_type=return_type)
 
         def builder3(domain_type, domain_schema) -> BuiltFunction:
-            return BuiltFunction(normalized_func, return_type or domain_type, domain_schema)
+            if isinstance(return_type, LazyTyper):
+                return BuiltFunction(normalized_func, domain_type, domain_schema)
+            return BuiltFunction(normalized_func, return_type, domain_schema)
 
         return FunctionFactory(builder3, return_type, f"returning {return_type}")
 
@@ -309,11 +317,17 @@ def wrap_func(func, return_type=None):
 
         wrapper = wrapper0
     elif num_args == 1:
-
-        def wrapper1(val, att):
-            return func(val)
-
-        wrapper = wrapper1
+        locals = {}
+        exec(
+            strings.outdent(f"""
+            def {func_name}(val, att):
+                return func(val)            
+            """),
+            {"func": func},
+            locals
+        )
+        wrapper = locals[func_name]
+        setattr(wrapper, "orignal", func)
     else:
         return func, return_type
 
@@ -336,7 +350,7 @@ class TopFunctionFactory(FunctionFactory):
             return BuiltFunction(lambda v, a: value, domain_type, domain_schema)
 
         if isinstance(value, type):
-            return FunctionFactory(builder, CallableTyper(python_type=value), f"{value}")
+            return FunctionFactory(builder, CallableTyper(return_type=value), f"{value}")
 
         return FunctionFactory(builder, Typer(python_type=type(value)), f"{value}")
 

@@ -103,32 +103,27 @@ class ObjectStream(Stream):
                 ((getattr(v, accessor), a) for v, a in self._iter), type_, self._schema
             )
         fact = factory(accessor, self.typer)
-        do_accessor = fact.build(self.typer, self._schema)
+        acc_func, acc_type, acc_schema = fact.build(self.typer, self._schema)
 
         def read():
             for v, a in self._iter:
                 try:
-                    yield do_accessor(v, a), a
+                    yield acc_func(v, a), a
                 except (StopIteration, GeneratorExit):
                     raise
                 except Exception as cause:
                     yield None, a
 
-        if isinstance(fact.typer, LazyTyper):
-            type_ = fact.typer._resolver(self.typer)
-        else:
-            type_ = fact.typer
-
-        return ObjectStream(read(), type_, self._schema)
+        return ObjectStream(read(), acc_type, self._schema)
 
     def filter(self, predicate):
         fact = factory(predicate, return_type=bool)
-        filteror = fact.build(self.typer, self._schema)
+        f, t, s = fact.build(self.typer, self._schema)
 
         def read():
             for v, a in self._iter:
                 try:
-                    if filteror(v, a):
+                    if f(v, a):
                         yield v, a
                 except (StopIteration, GeneratorExit):
                     raise
