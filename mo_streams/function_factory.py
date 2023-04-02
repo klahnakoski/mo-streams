@@ -221,6 +221,9 @@ def factory(item, return_type=None):
 
 
 def normalize(item, return_type=None):
+    """
+    RETURN A FUNCTION THAT CAN ACT ON THE value/attachment PAIR FOUND IN STREAMS
+    """
     if isinstance(item, FunctionFactory):
         return item
 
