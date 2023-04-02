@@ -204,7 +204,7 @@ class FunctionFactory:
 
             return BuiltFunction(func, st(*_args.return_type), domain_schema)
 
-        return FunctionFactory(builder, _get(self, "typer")(), source)
+        return FunctionFactory(builder, _get(self, "typer"), source)
 
     def __str__(self):
         return _get(self, "_desc")
@@ -362,13 +362,20 @@ class TopFunctionFactory(FunctionFactory):
         if isinstance(value, FunctionFactory):
             logger.error("don't do this")
 
-        def builder(domain_type, domain_schema) -> BuiltFunction:
-            return BuiltFunction(lambda v, a: value, domain_type, domain_schema)
-
         if isinstance(value, type):
-            return FunctionFactory(builder, CallableTyper(return_type=value), f"{value}")
+            # ASSUME THIS IS A CONSTRUCTOR
+            typer = CallableTyper(return_type=value)
+            def type_builder(domain_type, domain_schema) -> BuiltFunction:
+                return BuiltFunction(lambda v, a: value, typer, domain_schema)
 
-        return FunctionFactory(builder, Typer(python_type=type(value)), f"{value}")
+            return FunctionFactory(type_builder, typer, f"{value}")
+
+        typer = Typer(python_type=type(value))
+
+        def value_builder(domain_type, domain_schema) -> BuiltFunction:
+            return BuiltFunction(lambda v, a: value, typer, domain_schema)
+
+        return FunctionFactory(value_builder, typer, f"{value}")
 
     def __str__(self):
         return "it"

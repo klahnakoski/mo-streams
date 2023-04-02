@@ -6,17 +6,16 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-import inspect
 import itertools
 from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
 from mo_dots import list_to_data
 from mo_files import File
+from mo_future import zip_longest, first
 from mo_imports import expect, export
 from mo_logs import logger
 
-from mo_future import zip_longest, first
 from mo_json import JxType, JX_INTEGER
 from mo_streams import ByteStream
 from mo_streams._utils import (
@@ -136,16 +135,12 @@ class ObjectStream(Stream):
 
     def attach(self, **kwargs):
         facts = {k: factory(v) for k, v in kwargs.items()}
-
-        more_schema = JxType()  # NOT AT REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
-        for k, f in facts.items():
-            setattr(more_schema, k, f.typer)
-
-        mapper = {k: f.build(f.typer, self._schema) for k, f in facts.items()}
+        mapper = {k: f.build(self.typer, self._schema) for k, f in facts.items()}
+        more_schema = JxType(**{k: f.return_type for k, f in mapper.items()})
 
         def read():
             for v, a in self._iter:
-                yield v, {**a, **{k: m(v, a) for k, m in mapper.items()}}
+                yield v, {**a, **{k: m.function(v, a) for k, m in mapper.items()}}
 
         return ObjectStream(read(), self.typer, self._schema | more_schema)
 
