@@ -20,7 +20,7 @@ from mo_streams.files import content, File_usingStream
 from mo_streams.function_factory import it
 from mo_streams.object_stream import ObjectStream, ERROR, WARNING, NONE
 from mo_streams.string_stream import StringStream
-from mo_streams.type_utils import Typer, CallableTyper
+from mo_streams.type_utils import Typer, CallableTyper, StreamTyper, LazyTyper
 
 
 def stream(value):
@@ -29,11 +29,7 @@ def stream(value):
         if not kv:
             return EmptyStream()
         _, example = kv
-        return ObjectStream(
-            ((v, {"key": k}) for k, v in value.items()),
-            Typer(example=example),
-            JxType(key=JX_TEXT),
-        )
+        return ObjectStream(((v, {"key": k}) for k, v in value.items()), Typer(example=example), JxType(key=JX_TEXT),)
     elif isinstance(value, bytes):
         return ByteStream(Reader(iter([value])))
     elif isinstance(value, str):
@@ -43,11 +39,10 @@ def stream(value):
     elif isinstance(value, Stream):
         return value
     elif isinstance(value, type(range(1))):
-        return ObjectStream(
-            ((v, {}) for v in value), Typer(example=value.stop), JxType()
-        )
+        return ObjectStream(((v, {}) for v in value), Typer(example=value.stop), JxType())
     elif is_finite(value):
         example = first(value)
+
         def read_from_list():
             for v in value:
                 yield v, {}
@@ -55,6 +50,7 @@ def stream(value):
         return ObjectStream(read_from_list(), Typer(example=example), JxType())
     elif is_many(value):
         example = first(value)
+
         def read():
             yield example, {}
             for v in value:
@@ -66,10 +62,17 @@ def stream(value):
 
 
 ANNOTATIONS = {
-    (str, "encode"): CallableTyper(python_type=bytes),
-    (File_usingStream, "content"): CallableTyper(python_type=ByteStream),
-    (File, "content"): CallableTyper(python_type=ByteStream),
-    (ByteStream, "utf8"): CallableTyper(python_type=StringStream),
+    (str, "encode"): CallableTyper(return_type=bytes),
+    (File_usingStream, "content"): CallableTyper(return_type=ByteStream),
+    (File, "content"): CallableTyper(return_type=ByteStream),
+    (ByteStream, "utf8"): CallableTyper(return_type=StringStream),
+    (StringStream, "lines"): CallableTyper(return_type=StreamTyper(
+        member_type=Typer(python_type=str), _schema=JxType()
+    )),
+    (ByteStream, "lines"): CallableTyper(return_type=StreamTyper(
+        member_type=Typer(python_type=str), _schema=JxType()
+    )),
+    (ObjectStream, "map"): CallableTyper(return_type=StreamTyper(member_type=LazyTyper(), _schema=JxType())),
 }
 
 export("mo_streams.object_stream", stream)

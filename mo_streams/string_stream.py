@@ -43,13 +43,14 @@ class StringStream(Stream):
 
                     while end != -1:
                         yield line[:end], {}
+                        end += 1
                         line = line[end:]
                         end = line.find("\n")
             except StopIteration:
                 if line:
                     yield line, {}
 
-        return ObjectStream(read, Typer(python_type=str), JxType())
+        return ObjectStream(read(), Typer(python_type=str), JxType())
 
     def to_str(self) -> str:
         return "".join(self._chunks)

@@ -12,19 +12,18 @@ from decimal import Decimal
 from math import isnan
 
 from mo_dots import split_field, NullType, is_many, is_data, concat_field, is_sequence
+from mo_future import text, none_type, items, first, POS_INF
 from mo_logs import Log
 from mo_times import Date
-
-from mo_future import text, none_type, items, first, POS_INF
 
 
 def to_jx_type(value):
     if isinstance(value, JxType):
         return value
     try:
-        return _type_to_json_type[value]
+        return _json_type_to_jx_type[value]
     except Exception:
-        return JX_JSON
+        return JX_ANY
 
 
 class JxType(object):
@@ -36,6 +35,8 @@ class JxType(object):
         other = to_jx_type(other)
         if self is JX_IS_NULL:
             return other
+        if self is JX_ANY:
+            return self
 
         sd = self.__dict__.copy()
         od = other.__dict__
@@ -48,9 +49,7 @@ class JxType(object):
             if sv is None:
                 if k in JX_NUMBER_TYPES.__dict__ and sd.get(_N):
                     continue
-                elif k is _N and any(
-                    sd.get(kk) for kk in JX_NUMBER_TYPES.__dict__.keys()
-                ):
+                elif k is _N and any(sd.get(kk) for kk in JX_NUMBER_TYPES.__dict__.keys()):
                     for kk in JX_NUMBER_TYPES.__dict__.keys():
                         try:
                             del sd[kk]
@@ -80,6 +79,8 @@ class JxType(object):
         return output
 
     def __getitem__(self, item):
+        if self is JX_ANY:
+            return self
         return self.__dict__.get(item)
 
     def __hash__(self):
@@ -108,7 +109,16 @@ class JxType(object):
                 return False
         return True
 
+    def __ne__(self, other):
+        if self is JX_ANY and other is ARRAY:
+            return False
+        return not self == other
+
     def __eq__(self, other):
+        if other is ARRAY and hasattr(self, _A):
+            # SHALLOW CHECK IF THIS IS AN ARRAY
+            return True
+
         if not isinstance(other, JxType):
             return False
 
@@ -152,10 +162,7 @@ class JxType(object):
         return acc
 
     def __data__(self):
-        return {
-            k: v.__data__() if isinstance(v, JxType) else str(v)
-            for k, v in self.__dict__.items()
-        }
+        return {k: v.__data__() if isinstance(v, JxType) else str(v) for k, v in self.__dict__.items()}
 
     def __str__(self):
         return str(self.__data__())
@@ -166,6 +173,16 @@ class JxType(object):
 
 def array_of(type_):
     return JxType(**{_A: type_})
+
+
+def member_type(type_):
+    """
+    RETURN THE MEMBER TYPE, IF AN ARRAY
+    """
+    if type_ == ARRAY:
+        return getattr(type_, _A)
+    else:
+        return type_
 
 
 def base_type(type_):
@@ -255,7 +272,7 @@ JX_TIME = _primitive(_T, TIME)
 JX_INTERVAL = _primitive(_D, INTERVAL)  # d FOR DELTA
 JX_TEXT = _primitive(_S, STRING)
 JX_ARRAY = _primitive(_A, ARRAY)
-JX_JSON = _primitive(_J, JSON)
+JX_ANY = _primitive(_J, JSON)
 
 JX_PRIMITIVE = _new(JxType)
 JX_PRIMITIVE.__dict__ = [
@@ -274,15 +291,10 @@ JX_NUMBER_TYPES = _new(JxType)
 JX_NUMBER_TYPES.__dict__ = [
     (x, x.update(d))[0]
     for x in [{}]
-    for d in [
-        JX_INTEGER.__dict__,
-        JX_NUMBER.__dict__,
-        JX_TIME.__dict__,
-        JX_INTERVAL.__dict__,
-    ]
+    for d in [JX_INTEGER.__dict__, JX_NUMBER.__dict__, JX_TIME.__dict__, JX_INTERVAL.__dict__]
 ][0]
 
-_type_to_json_type = {
+_json_type_to_jx_type = {
     IS_NULL: JX_IS_NULL,
     BOOLEAN: JX_BOOLEAN,
     INTEGER: JX_INTERVAL,
@@ -324,7 +336,7 @@ def value_to_jx_type(value):
 
 
 def python_type_to_jx_type(type):
-    return _python_type_to_jx_type.get(type, JX_JSON)
+    return _python_type_to_jx_type.get(type, JX_ANY)
 
 
 _jx_type_to_json_type = {
@@ -336,7 +348,7 @@ _jx_type_to_json_type = {
     JX_INTERVAL: NUMBER,
     JX_TEXT: STRING,
     JX_ARRAY: ARRAY,
-    JX_JSON: OBJECT,
+    JX_ANY: OBJECT,
 }
 
 

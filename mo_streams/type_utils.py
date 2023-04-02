@@ -63,7 +63,7 @@ class Typer:
         logger.error("not handled")
 
     def __call__(self, *args, **kwargs):
-        spec = inspect.getfullargspec(self.python_type)
+        logger.error("programmer error")
 
     def __str__(self):
         return f"Typer(class={self.python_type.__name__})"
@@ -75,7 +75,7 @@ class JxTyper:
     """
 
     def __init__(self, type_):
-         self.type_ : JxType = type_
+        self.type_: JxType = type_
 
     def __getattr__(self, item):
         attribute_type = self.type_[item]
@@ -92,7 +92,7 @@ class JxTyper:
     def __add__(self, other):
         if self.type_ != other.typer:
             logger.error("Can not add two different types")
-        if self.type_==JX_TEXT:
+        if self.type_ == JX_TEXT:
             # ADDING STRINGS RESULTS IN AN ARRAY OF STRINGS
             return array_of(JX_TEXT)
         return self
@@ -109,20 +109,39 @@ class StreamTyper(Typer):
     AN ObjectStream HAS A TYPE TOO
     """
 
-    def __init__(self, python_type, schema_):
-        self.type_ = python_type
-        self.schema_ = schema_
+    def __init__(self, member_type, _schema):
+        Typer.__init__(self, python_type=ObjectStream)
+        if not isinstance(member_type, Typer):
+            logger.error("expecting typer")
+        self.member_type = member_type
+        self._schema = _schema
 
     def __call__(self, *args, **kwargs):
         logger.error("can not call an ObjectStream")
+
+    @property
+    def map(self):
+        return MapperTyper(self.member_type, self._schema)
+
+    @property
+    def filter(self):
+        return CallableTyper(self)
+
+    @property
+    def to_list(self):
+        return CallableTyper(Typer(python_type=list))
+
+    @property
+    def sum(self):
+        return CallableTyper(Typer(python_type=float))
 
     def __getattr__(self, item):
         spec = inspect.getmembers(ObjectStream)
         for k, m in spec:
             if k == item:
-                inspect.ismethod(m)
+                logger.error("add method to handle type inference for ObjectStream")
 
-        output = getattr(self.type_, item)
+        output = getattr(self.member_type, item)
         if isinstance(output, UnknownTyper):
             if item in self._schema:
                 output = self._schema[item]
@@ -131,8 +150,24 @@ class StreamTyper(Typer):
         return output
 
     def __str__(self):
-        return f"StreamTyper({self.type_})"
+        return f"StreamTyper({self.member_type})"
 
+
+class MapperTyper(Typer):
+    """
+    REPRESENT THE RETURN TYPE OF THE Stream.map()
+    """
+
+    def __init__(self, domain_type, _schema):
+        Typer.__init__(self, python_type=ObjectStream)
+        self.domain_type = domain_type
+        self._schema = _schema
+
+    def __call__(self, return_type):
+        return StreamTyper(member_type=return_type, _schema=self._schema)
+
+    def __str__(self):
+        return f"MapperTyper({self.member_type}, {self._schema})"
 
 
 class CallableTyper(Typer):
@@ -140,11 +175,14 @@ class CallableTyper(Typer):
     ASSUME THIS WILL BE CALLED, AND THIS IS THE TYPE RETURNED
     """
 
-    def __init__(self, python_type):
-        self.type_ = python_type
+    def __init__(self, return_type):
+        if isinstance(return_type, Typer):
+            self.type_ = return_type
+        else:
+            self.type_ = Typer(python_type=return_type)
 
     def __call__(self, *args, **kwargs):
-        return Typer(python_type=self.type_)
+        return self.type_
 
     def __getattr__(self, item):
         spec = inspect.getmembers(self.type_)
@@ -153,7 +191,7 @@ class CallableTyper(Typer):
                 inspect.ismethod(m)
 
     def __str__(self):
-        return f"CallableTyper(return_type={self.type_.__name__})"
+        return f"CallableTyper(return_type={self.type_})"
 
 
 class UnknownTyper(Typer):
@@ -164,6 +202,9 @@ class UnknownTyper(Typer):
     def __init__(self, error):
         Typer.__init__(self)
         self._error: Exception = error
+
+    def __bool__(self):
+        return False
 
     def __getattr__(self, item):
         def build(type_):
