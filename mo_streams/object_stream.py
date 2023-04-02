@@ -116,7 +116,7 @@ class ObjectStream(Stream):
                 except (StopIteration, GeneratorExit):
                     raise
                 except Exception as cause:
-                    logger.warning("problem operating on {{value}}", value=value, cause=cause)
+                    DEBUG and logger.warning("problem operating on {{value}}", value=value, cause=cause)
                     yield result, attach
 
         return ObjectStream(read(), acc_type, self._schema)
