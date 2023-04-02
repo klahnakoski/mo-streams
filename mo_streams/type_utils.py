@@ -131,6 +131,10 @@ class StreamTyper(Typer):
     def to_list(self):
         return CallableTyper(Typer(python_type=list))
 
+    @property
+    def sum(self):
+        return CallableTyper(Typer(python_type=float))
+
     def __getattr__(self, item):
         spec = inspect.getmembers(ObjectStream)
         for k, m in spec:

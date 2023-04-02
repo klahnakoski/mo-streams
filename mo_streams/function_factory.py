@@ -35,23 +35,39 @@ class FunctionFactory:
         _set(self, "_desc", desc)
 
     def __getattr__(self, item):
+        source = f"{self}.{item}"
+
         def builder(domain_type, domain_schema) -> BuiltFunction:
             f, t, s = _get(self, "build")(domain_type, domain_schema)
             if item in s:
+                def get_schema_item(v, a):
+                    try:
+                        return a[item]
+                    finally:
+                        logger.info("run {{source}}", source=source)
 
-                def func(v, a):
-                    return a[item]
-
-                return BuiltFunction(func, domain_schema[item], domain_schema)
+                return BuiltFunction(get_schema_item, domain_schema[item], domain_schema)
             elif isinstance(item, FunctionFactory):
                 f, t, s = item.build(domain_type, domain_schema)
 
-                return BuiltFunction(lambda v, a: getattr(f(v, a), f(v, a)), UnknownTyper(Exception("too complicated to know type")), s)
+                def get_func_item(v, a):
+                    try:
+                        return getattr(f(v, a), f(v, a))
+                    finally:
+                        logger.info("run {{source}}", source=source)
+
+                return BuiltFunction(get_func_item, UnknownTyper(Exception("too complicated to know type")), s)
             else:
-                return BuiltFunction(lambda v, a: getattr(f(v, a), item), getattr(t, item), s)
+                def get_const_item(v, a):
+                    try:
+                        return getattr(f(v, a), item)
+                    finally:
+                        logger.info("run {{source}}", source=source)
+
+                return BuiltFunction(get_const_item, getattr(t, item), s)
 
         return FunctionFactory(
-            builder, getattr(_get(self, "typer"), item), f"{self}.{item}"
+            builder, getattr(_get(self, "typer"), item), source
         )
 
     def __eq__(self, other):
@@ -143,12 +159,7 @@ class FunctionFactory:
         return FunctionFactory(builder, Typer(python_type=float), f"{other} / {self}")
 
     def __radd__(self, other):
-        if isinstance(other, FunctionFactory):
-            func_other = other
-        else:
-            func_other = FunctionFactory(
-                lambda v, a: other, Typer(example=other), str(other)
-            )
+        func_other = factory(other)
 
         def builder(domain_type, domain_schema) -> BuiltFunction:
             sf, st, ss = self.build(domain_type, domain_schema)
@@ -177,13 +188,17 @@ class FunctionFactory:
             _kwargs = {k: v.build(st, ss).function for k, v in kwargs.items()}
 
             def func(v, a):
+                value = None
+                result = None
                 try:
-                    return sf(v, a)(
+                    value = sf(v, a)
+                    result = value(
                         *(f(v, a) for f in _args.function),
                         **{k: f(v, a) for k, f in _kwargs.items()},
                     )
+                    return result
                 finally:
-                    logger.info("run {{source}}", source=source)
+                    logger.info("call {{source}} on {{value}} result {{result}}", source=source, value=value, result=result)
 
             setattr(func, "source", source)
 
@@ -207,12 +222,12 @@ def factory(item, return_type=None):
     else:
         normalized_func, return_type = wrap_func(item, return_type=return_type)
 
-        def builder3(domain_type, domain_schema) -> BuiltFunction:
+        def builder(domain_type, domain_schema) -> BuiltFunction:
             if isinstance(return_type, LazyTyper):
                 return BuiltFunction(normalized_func, domain_type, domain_schema)
             return BuiltFunction(normalized_func, return_type, domain_schema)
 
-        return FunctionFactory(builder3, return_type, f"returning {return_type}")
+        return FunctionFactory(builder, return_type, f"returning {return_type}")
 
 
 
@@ -258,6 +273,8 @@ def wrap_func(func, return_type=None):
         func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
     except Exception:
         func_name = str(func)
+    if func_name.startswith("<"):
+        func_name="func"
 
     if func in singleArgBuiltins:
         spec = inspect.getfullargspec(func)
@@ -316,7 +333,9 @@ def wrap_func(func, return_type=None):
             return func()
 
         wrapper = wrapper0
-    elif num_args == 1:
+    elif num_args == 2 and spec.args[-1].startswith("att"):
+        wrapper = func
+    else:
         locals = {}
         exec(
             strings.outdent(f"""
@@ -327,13 +346,10 @@ def wrap_func(func, return_type=None):
             locals
         )
         wrapper = locals[func_name]
-        setattr(wrapper, "orignal", func)
-    else:
-        return func, return_type
+        setattr(wrapper, "original", func)
 
     # copy func name to wrapper for sensible debug output
     wrapper.__name__ = func_name
-
     return wrapper, return_type
 
 
@@ -358,9 +374,12 @@ class TopFunctionFactory(FunctionFactory):
         return "it"
 
 
-def noop(v, a) -> LazyTyper:
+def noop(v, a):
     return v
 
 
-it = factory(noop)
-it.__class__ = TopFunctionFactory
+def top_builder(domain_type, domain_schema) -> BuiltFunction:
+    return BuiltFunction(noop, domain_type, domain_schema)
+
+
+it = TopFunctionFactory(top_builder, LazyTyper(), "it")

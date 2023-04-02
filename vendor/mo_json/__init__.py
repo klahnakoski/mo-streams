@@ -429,9 +429,10 @@ def json2value(json_string, params=Null, flexible=False, leaves=False):
         hexx_str = bytes2hex(base_str, " ")
         try:
             char_str = " " + "  ".join(
-                (c.decode("latin1") if ord(c) >= 32 else ".") for c in base_str
+                (chr(c) if c >= 32 else ".")
+                for c in base_str
             )
-        except Exception:
+        except Exception as cause:
             char_str = " "
         Log.error(
             CAN_NOT_DECODE_JSON + ":\n{{char_str}}\n{{hexx_str}}\n",

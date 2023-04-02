@@ -47,7 +47,6 @@ class TestStream(TestCase):
         self.assertEqual(len(content), 6191)
 
     def test_work_on_files(self):
-
         def analysis(lines):
             ## expect list of Data
             if not isinstance(lines, list):
@@ -58,12 +57,22 @@ class TestStream(TestCase):
 
         result = (
             File("tests/resources/data_in_zip.zip")
-                .content()
-                .map(it.content().lines().filter(exists).map(json2value).to_list())
-                .map(analysis)
-                .to_list()
+            .content()
+            .map(it.content().lines().filter(exists).map(json2value).to_list())
+            .map(analysis)
+            .to_list()
         )
         self.assertEqual(result, [[{"a": 1}, {"a": 2}, {"a": 3}], [{"c": 11}, {"c": 22}, {"c": 33}]])
+
+    def test_work_on_files_simple(self):
+        result = File("tests/resources/data_in_zip.zip").content().map(it.content().lines().to_list()).to_list()
+        self.assertEqual(
+            result,
+            [
+                ['{"a":  1}', "", '{"a":  2}', "", '{"a":  3}', "", ""],
+                ['{"c":  11}', '{"c":  22}', "", '{"c":  33}', "", ""],
+            ],
+        )
 
     def test_from_zip(self):
         file = File("tests/resources/example.zip")
@@ -183,19 +192,17 @@ class TestStream(TestCase):
         result = (
             stream([1, 2, 3])
             .group(lambda v: v % 2)
-            .map(lambda v, a: {"group": a["group"], "value": v.to_list()})
+            .map(lambda v, att: {"group": att["group"], "value": v.to_list()})
             .to_list()
         )
-        self.assertEqual(
-            result, [{"group": 0, "value": [2]}, {"group": 1, "value": [1, 3]}]
-        )
+        self.assertEqual(result, [{"group": 0, "value": [2]}, {"group": 1, "value": [1, 3]}])
 
     def test_group2(self):
         result = (
             stream([1, 2, 3])
             .group(lambda v: v % 2)
             .map(it.sum())
-            .map(lambda v, a: {"group": a["group"], "value": v})
+            .map(lambda v, att: {"group": att["group"], "value": v})
             .to_list()
         )
         self.assertEqual(result, [{"group": 0, "value": 2}, {"group": 1, "value": 4}])
@@ -256,12 +263,7 @@ class TestStream(TestCase):
             # calc
             .attach(2 * it[this_year] - it[last_year], next_year)
             # melt dates back to rows
-            .melt(
-                id_vars=["cohort"],
-                value_vars=years,
-                var_name="date",
-                value_name="population",
-            )
+            .melt(id_vars=["cohort"], value_vars=years, var_name="date", value_name="population",)
             # add to original table
             .append_to(populations)
         )
@@ -282,9 +284,7 @@ class TestStream(TestCase):
         self.assertIsNone(stream.attach(a=22).sum())
 
     def test_div(self):
-        self.assertEqual(
-            stream([1, 2, None, 3]).map(it / 100).to_list(), [0.01, 0.02, None, 0.03]
-        )
+        self.assertEqual(stream([1, 2, None, 3]).map(it / 100).to_list(), [0.01, 0.02, None, 0.03])
 
     def test_radd(self):
         self.assertEqual(stream([1, 2, None, 3]).map(3 + it).to_list(), [4, 5, None, 6])

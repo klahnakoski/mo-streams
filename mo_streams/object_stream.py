@@ -6,6 +6,7 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
+import inspect
 import itertools
 from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
@@ -27,7 +28,7 @@ from mo_streams._utils import (
 from mo_streams.byte_stream import DEBUG
 from mo_streams.files import File_usingStream
 from mo_streams.function_factory import factory
-from mo_streams.type_utils import Typer, LazyTyper, UnknownTyper, StreamTyper
+from mo_streams.type_utils import Typer, LazyTyper, StreamTyper
 
 _get = object.__getattribute__
 stream = expect("stream")
@@ -106,13 +107,14 @@ class ObjectStream(Stream):
         acc_func, acc_type, acc_schema = fact.build(self.typer, self._schema)
 
         def read():
-            for v, a in self._iter:
+            for value, attach in self._iter:
                 try:
-                    yield acc_func(v, a), a
+                    yield acc_func(value, attach), attach
                 except (StopIteration, GeneratorExit):
                     raise
                 except Exception as cause:
-                    yield None, a
+                    logger.warning("problem operating on {{value}}", value=value, cause=cause)
+                    yield None, attach
 
         return ObjectStream(read(), acc_type, self._schema)
 
@@ -247,8 +249,9 @@ class ObjectStream(Stream):
         else:
             raw_group_function = groupor
 
-        group_factory = factory(raw_group_function, self_type=self.typer)
-        group_function = lambda pair: group_factory.build(self.typer, self._schema)(*pair)
+        group_factory = factory(raw_group_function, return_type=self.typer)
+        func = group_factory.build(self.typer, self._schema).function
+        group_function = lambda pair: func(*pair)
         group_schema = JxType()  # NOT A REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
         setattr(group_schema, "group", group_factory.typer)
         sub_schema = self._schema | group_schema
