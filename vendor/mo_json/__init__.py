@@ -405,10 +405,7 @@ def json2value(json_string, params=Null, flexible=False, leaves=False):
         base_str = strings.limit(json_string, 1000).encode("utf8")
         hexx_str = bytes2hex(base_str, " ")
         try:
-            char_str = " " + "  ".join(
-                (chr(c) if c >= 32 else ".")
-                for c in base_str
-            )
+            char_str = " " + "  ".join((chr(c) if c >= 32 else ".") for c in base_str)
         except Exception as cause:
             char_str = " "
         Log.error(

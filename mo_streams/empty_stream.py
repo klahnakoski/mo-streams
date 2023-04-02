@@ -16,7 +16,6 @@ from mo_streams._utils import Stream
 
 
 class EmptyStream(Stream):
-
     def to_dict(self):
         return {}
 

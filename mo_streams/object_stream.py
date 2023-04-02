@@ -24,10 +24,11 @@ from mo_streams._utils import (
     chunk_bytes,
     Stream,
 )
-from mo_streams.byte_stream import DEBUG
 from mo_streams.files import File_usingStream
 from mo_streams.function_factory import normalize
 from mo_streams.type_utils import Typer, LazyTyper, StreamTyper
+
+DEBUG = False
 
 _get = object.__getattribute__
 stream = expect("stream")
@@ -45,8 +46,7 @@ class ObjectStream(Stream):
     def __init__(self, values, datatype, schema):
         if not isinstance(datatype, Typer) or isinstance(datatype, LazyTyper):
             logger.error(
-                "expecting datatype to be Typer not {{type}}",
-                type=datatype.__class__.__name__,
+                "expecting datatype to be Typer not {{type}}", type=datatype.__class__.__name__,
             )
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
         self.typer: Typer = datatype
@@ -65,9 +65,7 @@ class ObjectStream(Stream):
                 except (StopIteration, GeneratorExit):
                     raise
                 except Exception as cause:
-                    DEBUG and logger.warn(
-                        "can not get attribute {{item|quote}}", cause=cause
-                    )
+                    DEBUG and logger.warn("can not get attribute {{item|quote}}", cause=cause)
                     yield None, a
 
         return ObjectStream(read(), type_, self._schema)
@@ -102,9 +100,7 @@ class ObjectStream(Stream):
     def map(self, accessor):
         if isinstance(accessor, str):
             type_ = getattr(self.typer, accessor)
-            return ObjectStream(
-                ((getattr(v, accessor), a) for v, a in self._iter), type_, self._schema
-            )
+            return ObjectStream(((getattr(v, accessor), a) for v, a in self._iter), type_, self._schema)
         fact = normalize(accessor, self.typer)
         acc_func, acc_type, acc_schema = fact.build(self.typer, self._schema)
 
@@ -113,7 +109,9 @@ class ObjectStream(Stream):
                 result = None
                 try:
                     result = acc_func(value, attach)
-                    logger.info("call {{func}} on {{value}} returns {{result}}", func=acc_func, result=result, value=value)
+                    DEBUG and logger.info(
+                        "call {{func}} on {{value}} returns {{result}}", func=acc_func, result=result, value=value
+                    )
                     yield result, attach
                 except (StopIteration, GeneratorExit):
                     raise
@@ -221,12 +219,7 @@ class ObjectStream(Stream):
         def read():
             yield from zip_longest(self._iter, *(s._iter for s in streams))
 
-        return TupleStream(
-            read(),
-            self._example,
-            self.typer,
-            sum((s._schema for s in streams), JxType()),
-        )
+        return TupleStream(read(), self._example, self.typer, sum((s._schema for s in streams), JxType()),)
 
     def limit(self, count):
         def read():
@@ -259,14 +252,15 @@ class ObjectStream(Stream):
 
         def read():
             for group, rows in itertools.groupby(sorted(self._iter, key=group_function), group_function):
+
                 def read_rows():
                     for v, a in rows:
                         yield v, {**a, "group": group}
+
                 # THIS IS A BAD IDEA, ObjectStream CAN GET EXPENSIVE IN A LOOP
                 yield ObjectStream(read_rows(), self.typer, sub_schema), {"group": group}
 
         return ObjectStream(read(), StreamTyper(self.typer, sub_schema), group_schema)
-
 
     ###########################################################################
     # TERMINATORS
@@ -306,8 +300,7 @@ class ObjectStream(Stream):
             candidates = self._schema.__dict__.keys()
             if len(candidates) != 1:
                 logger.error(
-                    "expecting attachment to have just one property, not {{num}}",
-                    num=len(candidates),
+                    "expecting attachment to have just one property, not {{num}}", num=len(candidates),
                 )
             key = first(candidates)
 
@@ -330,11 +323,7 @@ class ObjectStream(Stream):
             mode = "w"
             writer = Writer()
             with ZipFile(
-                writer,
-                mode=mode,
-                compression=compression,
-                allowZip64=allowZip64,
-                compresslevel=compresslevel,
+                writer, mode=mode, compression=compression, allowZip64=allowZip64, compresslevel=compresslevel,
             ) as archive:
                 for file, _ in self._iter:
                     info = ZipInfo(file.rel_path)

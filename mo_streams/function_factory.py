@@ -16,11 +16,14 @@ from mo_logs.exceptions import ERROR, get_stacktrace
 
 from mo_streams.type_utils import Typer, LazyTyper, CallableTyper, UnknownTyper
 
+DEBUG = False
+
 _get = object.__getattribute__
 _set = object.__setattr__
 
 BuiltFunction = namedtuple("BuiltFunction", ["function", "return_type", "schema"])
 NO_ARGS = BuiltFunction(tuple(), tuple(), tuple())
+
 
 class FunctionFactory:
     """
@@ -40,11 +43,12 @@ class FunctionFactory:
         def builder(domain_type, domain_schema) -> BuiltFunction:
             f, t, s = _get(self, "build")(domain_type, domain_schema)
             if item in s:
+
                 def get_schema_item(v, a):
                     try:
                         return a[item]
                     finally:
-                        logger.info("run {{source}}", source=source)
+                        DEBUG and logger.info("run {{source}}", source=source)
 
                 return BuiltFunction(get_schema_item, domain_schema[item], domain_schema)
             elif isinstance(item, FunctionFactory):
@@ -54,21 +58,20 @@ class FunctionFactory:
                     try:
                         return getattr(f(v, a), f(v, a))
                     finally:
-                        logger.info("run {{source}}", source=source)
+                        DEBUG and logger.info("run {{source}}", source=source)
 
                 return BuiltFunction(get_func_item, UnknownTyper(Exception("too complicated to know type")), s)
             else:
+
                 def get_const_item(v, a):
                     try:
                         return getattr(f(v, a), item)
                     finally:
-                        logger.info("run {{source}}", source=source)
+                        DEBUG and logger.info("run {{source}}", source=source)
 
                 return BuiltFunction(get_const_item, getattr(t, item), s)
 
-        return FunctionFactory(
-            builder, getattr(_get(self, "typer"), item), source
-        )
+        return FunctionFactory(builder, getattr(_get(self, "typer"), item), source)
 
     def __eq__(self, other):
         func_other = factory(other)
@@ -152,7 +155,7 @@ class FunctionFactory:
                 ov = of(v, a)
                 if is_missing(sv) or is_missing(ov):
                     return None
-                return sv/ov
+                return sv / ov
 
             return BuiltFunction(func, Typer(python_type=float), domain_schema)
 
@@ -197,7 +200,9 @@ class FunctionFactory:
                     result = callee(*call_args, **call_kwargs)
                     return result
                 finally:
-                    logger.info("call {{source}} on {{callee}} result {{result}}", source=source, callee=callee, result=result)
+                    DEBUG and logger.info(
+                        "call {{source}} on {{callee}} result {{result}}", source=source, callee=callee, result=result
+                    )
 
             setattr(func, "source", source)
 
@@ -244,7 +249,6 @@ def normalize(item, return_type=None):
         return FunctionFactory(builder, return_type, f"returning {return_type}")
 
 
-
 #
 # def build(item) -> BuiltFunction:
 #     if isinstance(item, FunctionFactory):
@@ -281,14 +285,13 @@ singleArgTypes = [
 ]
 
 
-
 def wrap_func(func, return_type=None):
     try:
         func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
     except Exception:
         func_name = str(func)
     if func_name.startswith("<"):
-        func_name="func"
+        func_name = "func"
 
     if func in singleArgBuiltins:
         spec = inspect.getfullargspec(func)
@@ -338,11 +341,12 @@ def wrap_func(func, return_type=None):
             ERROR,
             "expecting {{function}} to have annotated return type",
             {"function": func_name},
-            trace=get_stacktrace(start=3)
+            trace=get_stacktrace(start=3),
         )
         return_type = UnknownTyper(cause)
 
     if num_args == 0:
+
         def wrapper0(val, att):
             return func()
 
@@ -352,12 +356,14 @@ def wrap_func(func, return_type=None):
     else:
         locals = {}
         exec(
-            strings.outdent(f"""
+            strings.outdent(
+                f"""
             def {func_name}(val, att):
                 return func(val)            
-            """),
+            """
+            ),
             {"func": func},
-            locals
+            locals,
         )
         wrapper = locals[func_name]
         setattr(wrapper, "original", func)
@@ -379,6 +385,7 @@ class TopFunctionFactory(FunctionFactory):
         if isinstance(value, type):
             # ASSUME THIS IS A CONSTRUCTOR
             typer = CallableTyper(return_type=value)
+
             def type_builder(domain_type, domain_schema) -> BuiltFunction:
                 return BuiltFunction(lambda v, a: value, typer, domain_schema)
 

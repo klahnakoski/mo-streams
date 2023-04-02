@@ -75,7 +75,7 @@ class JxTyper:
     """
 
     def __init__(self, type_):
-         self.type_ : JxType = type_
+        self.type_: JxType = type_
 
     def __getattr__(self, item):
         attribute_type = self.type_[item]
@@ -92,7 +92,7 @@ class JxTyper:
     def __add__(self, other):
         if self.type_ != other.typer:
             logger.error("Can not add two different types")
-        if self.type_==JX_TEXT:
+        if self.type_ == JX_TEXT:
             # ADDING STRINGS RESULTS IN AN ARRAY OF STRINGS
             return array_of(JX_TEXT)
         return self
@@ -202,7 +202,6 @@ class UnknownTyper(Typer):
     def __init__(self, error):
         Typer.__init__(self)
         self._error: Exception = error
-
 
     def __bool__(self):
         return False

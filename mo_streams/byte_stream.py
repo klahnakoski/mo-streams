@@ -20,7 +20,7 @@ ObjectStream, StringStream, File_usingStream, Typer = expect(
 )
 
 
-DEBUG = True
+DEBUG = False
 
 
 class ByteStream(Stream):
@@ -46,8 +46,7 @@ class ByteStream(Stream):
                 with ZipFile(reader, mode="r") as archive:
                     for info in archive.filelist:
                         yield File_usingStream(
-                            info.filename,
-                            lambda: ByteStream(archive.open(info.filename, "r")),
+                            info.filename, lambda: ByteStream(archive.open(info.filename, "r")),
                         ), {"name": info.filename}
             finally:
                 reader.close()
@@ -78,9 +77,7 @@ class ByteStream(Stream):
                 # directories
                 return File_usingStream(info.name, lambda: None)
             else:
-                return File_usingStream(
-                    info.name, lambda: ByteStream(tf.extractfile(info))
-                )
+                return File_usingStream(info.name, lambda: ByteStream(tf.extractfile(info)))
 
         def read():
             try:
