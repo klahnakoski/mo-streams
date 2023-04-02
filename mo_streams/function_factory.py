@@ -188,17 +188,16 @@ class FunctionFactory:
             _kwargs = {k: v.build(st, ss).function for k, v in kwargs.items()}
 
             def func(v, a):
-                value = None
+                callee = None
                 result = None
                 try:
-                    value = sf(v, a)
-                    result = value(
-                        *(f(v, a) for f in _args.function),
-                        **{k: f(v, a) for k, f in _kwargs.items()},
-                    )
+                    callee = sf(v, a)
+                    call_args = [f(v, a) for f in _args.function]
+                    call_kwargs = {k: f(v, a) for k, f in _kwargs.items()}
+                    result = callee(*call_args, **call_kwargs)
                     return result
                 finally:
-                    logger.info("call {{source}} on {{value}} result {{result}}", source=source, value=value, result=result)
+                    logger.info("call {{source}} on {{callee}} result {{result}}", source=source, callee=callee, result=result)
 
             setattr(func, "source", source)
 
@@ -211,14 +210,26 @@ class FunctionFactory:
 
 
 def factory(item, return_type=None):
+    if isinstance(item, FunctionFactory):
+        return item
+
+    # CONSTANT
+    def build_constant(domain_type, domain_schema) -> BuiltFunction:
+        return BuiltFunction(lambda v, a: item, Typer(example=item), domain_schema)
+
+    return FunctionFactory(build_constant, Typer(example=item), f"{item}")
+
+
+def normalize(item, return_type=None):
+    if isinstance(item, FunctionFactory):
+        return item
+
     if isinstance(item, (str, bytes, bool, int, float)):
         # CONSTANT
         def build_constant(domain_type, domain_schema) -> BuiltFunction:
             return BuiltFunction(lambda v, a: item, Typer(example=item), domain_schema)
 
         return FunctionFactory(build_constant, Typer(example=item), f"{item}")
-    elif isinstance(item, FunctionFactory):
-        return item
     else:
         normalized_func, return_type = wrap_func(item, return_type=return_type)
 

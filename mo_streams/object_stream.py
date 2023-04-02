@@ -26,7 +26,7 @@ from mo_streams._utils import (
 )
 from mo_streams.byte_stream import DEBUG
 from mo_streams.files import File_usingStream
-from mo_streams.function_factory import factory
+from mo_streams.function_factory import normalize
 from mo_streams.type_utils import Typer, LazyTyper, StreamTyper
 
 _get = object.__getattribute__
@@ -51,6 +51,9 @@ class ObjectStream(Stream):
         self._iter: Iterator[Tuple[Any, Dict[str, Any]]] = values
         self.typer: Typer = datatype
         self._schema: JxType = schema
+
+    def __data__(self):
+        return [f"...stream({self.typer})..."]
 
     def __getattr__(self, item):
         type_ = getattr(self.typer, item)
@@ -102,23 +105,26 @@ class ObjectStream(Stream):
             return ObjectStream(
                 ((getattr(v, accessor), a) for v, a in self._iter), type_, self._schema
             )
-        fact = factory(accessor, self.typer)
+        fact = normalize(accessor, self.typer)
         acc_func, acc_type, acc_schema = fact.build(self.typer, self._schema)
 
         def read():
             for value, attach in self._iter:
+                result = None
                 try:
-                    yield acc_func(value, attach), attach
+                    result = acc_func(value, attach)
+                    logger.info("call {{func}} on {{value}} returns {{result}}", func=acc_func, result=result, value=value)
+                    yield result, attach
                 except (StopIteration, GeneratorExit):
                     raise
                 except Exception as cause:
                     logger.warning("problem operating on {{value}}", value=value, cause=cause)
-                    yield None, attach
+                    yield result, attach
 
         return ObjectStream(read(), acc_type, self._schema)
 
     def filter(self, predicate):
-        fact = factory(predicate, return_type=bool)
+        fact = normalize(predicate)
         f, t, s = fact.build(self.typer, self._schema)
 
         def read():
@@ -134,7 +140,7 @@ class ObjectStream(Stream):
         return ObjectStream(read(), self.typer, self._schema)
 
     def attach(self, **kwargs):
-        facts = {k: factory(v) for k, v in kwargs.items()}
+        facts = {k: normalize(v) for k, v in kwargs.items()}
         mapper = {k: f.build(self.typer, self._schema) for k, f in facts.items()}
         more_schema = JxType(**{k: f.return_type for k, f in mapper.items()})
 
@@ -244,7 +250,7 @@ class ObjectStream(Stream):
         else:
             raw_group_function = groupor
 
-        group_factory = factory(raw_group_function, return_type=self.typer)
+        group_factory = normalize(raw_group_function, return_type=self.typer)
         func = group_factory.build(self.typer, self._schema).function
         group_function = lambda pair: func(*pair)
         group_schema = JxType()  # NOT A REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
