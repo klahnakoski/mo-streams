@@ -289,6 +289,9 @@ class TestStream(TestCase):
     def test_radd(self):
         self.assertEqual(stream([1, 2, None, 3]).map(3 + it).to_list(), [4, 5, None, 6])
 
+    def test_rsub(self):
+        self.assertEqual(stream([1, 2, None, 3]).map(3 - it).to_list(), [2, 1, None, 0])
+
 
 def length(value):
     return len(value)

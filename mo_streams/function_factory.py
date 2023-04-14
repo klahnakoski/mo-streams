@@ -161,6 +161,21 @@ class FunctionFactory:
 
         return FunctionFactory(builder, Typer(python_type=float), f"{other} / {self}")
 
+    def __rsub__(self, other):
+        func_other = factory(other)
+
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
+
+            def func(v, a):
+                return of(v, a) - sf(v, a)
+
+            return BuiltFunction(func, st, domain_schema)
+
+        type_ = Typer(example=other) + _get(self, "typer")
+        return FunctionFactory(builder, type_, f"{other} - {self}")
+
     def __radd__(self, other):
         func_other = factory(other)
 
