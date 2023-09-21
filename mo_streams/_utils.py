@@ -150,6 +150,8 @@ def is_function(value):
 
 def arg_spec(type_, item):
     for name, func in inspect.getmembers(type_):
-        if name != item:
-            continue
-        return inspect.getfullargspec(func)
+        if name == item:
+            try:
+                return inspect.getfullargspec(func)
+            except Exception as cause:
+                pass

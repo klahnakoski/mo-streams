@@ -102,8 +102,9 @@ class JxTyper:
         return JX_IS_NULL
 
     def __str__(self):
-        return f"JxTyper({self.type_})"
+        return f"JxTyper({self.type_.__repr__()})"
 
+    __repr__ = __str__
 
 class StreamTyper(Typer):
     """
@@ -192,7 +193,9 @@ class CallableTyper(Typer):
                 inspect.ismethod(m)
 
     def __str__(self):
-        return f"CallableTyper(return_type={self.type_})"
+        return f"CallableTyper(return_type={self.type_.__repr__})"
+
+    __repr__ = __str__
 
 
 class UnknownTyper(Typer):
