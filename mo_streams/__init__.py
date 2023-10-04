@@ -6,16 +6,12 @@
 #
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
-import inspect
-import typing
 
 from mo_dots import Data
 from mo_dots.lists import is_many, is_finite
 from mo_files import File
-from mo_imports import export
-
 from mo_future import first
-from mo_logs import logger
+from mo_imports import export
 
 from mo_json import JxType, JX_TEXT
 from mo_streams._utils import Stream, Reader
@@ -71,10 +67,6 @@ BOOL_CALL = CallableTyper(return_type=bool)
 INT_CALL = CallableTyper(return_type=int)
 BYTES_CALL = CallableTyper(return_type=bytes)
 STR = Typer(python_type=str)
-
-signature = inspect.signature(str.encode)
-return_type = signature.return_annotation
-print(return_type)
 
 
 ANNOTATIONS = {

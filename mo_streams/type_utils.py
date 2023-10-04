@@ -22,7 +22,6 @@ class Typer:
     Smooth out the lumps of Python type manipulation
     """
 
-
     def __init__(self, *, example=None, python_type=None, function=None):
         if function:
             # find function return type
@@ -105,6 +104,7 @@ class JxTyper:
         return f"JxTyper({self.type_.__repr__()})"
 
     __repr__ = __str__
+
 
 class StreamTyper(Typer):
     """
