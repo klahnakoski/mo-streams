@@ -7,6 +7,7 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 import inspect
+import typing
 
 from mo_dots import Data
 from mo_dots.lists import is_many, is_finite
@@ -70,6 +71,11 @@ BOOL_CALL = CallableTyper(return_type=bool)
 INT_CALL = CallableTyper(return_type=int)
 BYTES_CALL = CallableTyper(return_type=bytes)
 STR = Typer(python_type=str)
+
+signature = inspect.signature(str.encode)
+return_type = signature.return_annotation
+print(return_type)
+
 
 ANNOTATIONS = {
     # THE str METHODS DO NOT APPEAR TO BE IN THE str CLASS ANNOTATIONS
