@@ -15,6 +15,7 @@ from mo_dots import exists, Data
 from mo_files import File, TempFile
 from mo_logs import logger
 from mo_math import randoms
+from mo_threads import start_main_thread, stop_main_thread
 from mo_times import Date, YEAR
 from moto import mock_s3
 from pandas import DataFrame
@@ -32,6 +33,16 @@ line_terminator = "lineterminator" if sys.version_info[0] == 3 and sys.version_i
 
 @add_error_reporting
 class TestStream(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        stop_main_thread()
+        start_main_thread()
+
+    def tearDownClass(cls):
+        stop_main_thread()
+
+
     def test_encode(self):
         "".encode("utf8")
         result = stream("this is a test").encode("utf8").to_bytes()
