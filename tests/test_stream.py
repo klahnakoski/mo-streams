@@ -15,6 +15,7 @@ from mo_dots import exists, Data
 from mo_files import File, TempFile
 from mo_logs import logger
 from mo_math import randoms
+from mo_threads import start_main_thread, stop_main_thread
 from mo_times import Date, YEAR
 from moto import mock_s3
 from pandas import DataFrame
@@ -23,12 +24,26 @@ from mo_json import json2value
 from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream
 from mo_streams._utils import Writer
 from mo_streams.files import File_usingStream
+from mo_testing.fuzzytestcase import add_error_reporting
+
 
 IS_TRAVIS = bool(os.environ.get("TRAVIS"))
 line_terminator = "lineterminator" if sys.version_info[0] == 3 and sys.version_info[1] >= 8 else "line_terminator"
 
 
+@add_error_reporting
 class TestStream(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        stop_main_thread()
+        start_main_thread()
+
+    @classmethod
+    def tearDownClass(cls):
+        stop_main_thread()
+
+
     def test_encode(self):
         "".encode("utf8")
         result = stream("this is a test").encode("utf8").to_bytes()
@@ -291,6 +306,9 @@ class TestStream(TestCase):
 
     def test_rsub(self):
         self.assertEqual(stream([1, 2, None, 3]).map(3 - it).to_list(), [2, 1, None, 0])
+
+    def test_str_startswith(self):
+        self.assertEqual(stream(["abc", "def", "ghi"]).filter(it.startswith("a")).to_list(), ["abc"])
 
 
 def length(value):
