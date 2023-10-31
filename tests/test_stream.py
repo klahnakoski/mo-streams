@@ -39,6 +39,7 @@ class TestStream(TestCase):
         stop_main_thread()
         start_main_thread()
 
+    @classmethod
     def tearDownClass(cls):
         stop_main_thread()
 
