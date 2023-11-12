@@ -310,6 +310,9 @@ class TestStream(TestCase):
     def test_str_startswith(self):
         self.assertEqual(stream(["abc", "def", "ghi"]).filter(it.startswith("a")).to_list(), ["abc"])
 
+    def test_filter_and_concat(self):
+        self.assertEqual(stream(["A", "", None, "d"]).filter(exists).map(str.lower).join(","), "a,d")
+
 
 def length(value):
     return len(value)
