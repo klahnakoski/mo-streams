@@ -10,7 +10,7 @@ import itertools
 from typing import Any, Iterator, Dict, Tuple
 from zipfile import ZIP_STORED
 
-from mo_dots import list_to_data
+from mo_dots import list_to_data, exists
 from mo_files import File
 from mo_future import zip_longest, first
 from mo_imports import expect, export
@@ -151,7 +151,7 @@ class ObjectStream(Stream):
     def exists(self):
         def read():
             for v, a in self._iter:
-                if v != None:
+                if exists(v):
                     yield v, a
 
         return ObjectStream(read(), self.typer, self._schema)
@@ -290,6 +290,9 @@ class ObjectStream(Stream):
         for v, _ in self._iter:
             output = v
         return output
+
+    def join(self, separator):
+        return separator.join(v for v, _ in self._iter)
 
     def to_dict(self, key=None):
         """

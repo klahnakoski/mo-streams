@@ -137,3 +137,4 @@ ANNOTATIONS = {
 
 export("mo_streams.object_stream", stream)
 export("mo_streams.type_utils", ANNOTATIONS)
+export("mo_streams.function_factory", ANNOTATIONS)
