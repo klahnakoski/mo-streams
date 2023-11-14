@@ -65,7 +65,7 @@ class ObjectStream(Stream):
                 except (StopIteration, GeneratorExit):
                     raise
                 except Exception as cause:
-                    DEBUG and logger.warn("can not get attribute {{item|quote}}", cause=cause)
+                    DEBUG and logger.warning("can not get attribute {{item|quote}}", cause=cause)
                     yield None, a
 
         return ObjectStream(read(), type_, self._schema)

@@ -127,7 +127,7 @@ class ByteStream(Stream):
             return s3_client.upload_fileobj(self.reader, bucket, name)
         except Exception as cause:
             if self.verbose:
-                logger.warn("problem with s3 upload", cause=cause)
+                logger.warning("problem with s3 upload", cause=cause)
 
 
 export("mo_streams._utils", ByteStream)
