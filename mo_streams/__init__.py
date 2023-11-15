@@ -62,6 +62,19 @@ def stream(value):
         return ObjectStream(iter([(value, {})]), Typer(example=value), JxType())
 
 
+def from_s3(bucket, key):
+    import boto3
+    return S3Object(boto3.resource('s3').Object(bucket, key))
+
+
+class S3Object:
+    def __init__(self, obj):
+        self.obj = obj
+
+    def content(self) -> ByteStream:
+        return ByteStream(self.obj.get()['Body'])
+
+
 STR_CALL = CallableTyper(return_type=str)
 BOOL_CALL = CallableTyper(return_type=bool)
 INT_CALL = CallableTyper(return_type=int)
@@ -137,3 +150,4 @@ ANNOTATIONS = {
 
 export("mo_streams.object_stream", stream)
 export("mo_streams.type_utils", ANNOTATIONS)
+export("mo_streams.function_factory", ANNOTATIONS)

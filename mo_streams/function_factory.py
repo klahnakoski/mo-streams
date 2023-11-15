@@ -11,12 +11,17 @@ from collections import namedtuple
 from types import FunctionType
 
 from mo_dots import is_missing
+from mo_future import first
+from mo_imports import expect
 from mo_logs import logger, Except, strings
 from mo_logs.exceptions import ERROR, get_stacktrace
 
 from mo_streams.type_utils import Typer, LazyTyper, CallableTyper, UnknownTyper
 
 DEBUG = False
+
+ANNOTATIONS = expect('ANNOTATIONS')
+
 
 _get = object.__getattribute__
 _set = object.__setattr__
@@ -301,12 +306,25 @@ singleArgTypes = [
 
 
 def wrap_func(func, return_type=None):
+    func_desc = str(func)
+    if func_desc.startswith("<method"):
+        func_name = strings.between(func_desc, "<method '", "' of '")
+        class_name = strings.between(func_desc, "of '", "' objects")
+        _class = first(t for t in singleArgTypes if t.__name__ == class_name)
+        if _class:
+            result = ANNOTATIONS.get((_class, func_name))
+            if result:
+                def wrapped(val, att):
+                    return func(val)
+                return wrapped, result()
     try:
         func_name = getattr(func, "__name__", getattr(func, "__class__").__name__)
     except Exception:
-        func_name = str(func)
+        func_name = func_desc
     if func_name.startswith("<"):
         func_name = "func"
+
+
 
     if func in singleArgBuiltins:
         spec = inspect.getfullargspec(func)

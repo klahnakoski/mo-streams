@@ -7,7 +7,6 @@
 # Contact: Kyle Lahnakoski (kyle@lahnakoski.com)
 #
 import os
-import sys
 from unittest import TestCase, skipIf, skip
 
 import boto3
@@ -15,20 +14,19 @@ from mo_dots import exists, Data
 from mo_files import File, TempFile
 from mo_logs import logger
 from mo_math import randoms
+from mo_testing.fuzzytestcase import add_error_reporting
 from mo_threads import start_main_thread, stop_main_thread
 from mo_times import Date, YEAR
 from moto import mock_s3
 from pandas import DataFrame
 
 from mo_json import json2value
-from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream
+from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream, from_s3
 from mo_streams._utils import Writer
 from mo_streams.files import File_usingStream
-from mo_testing.fuzzytestcase import add_error_reporting
-
+from mo_streams.string_stream import line_terminator
 
 IS_TRAVIS = bool(os.environ.get("TRAVIS"))
-line_terminator = "lineterminator" if sys.version_info[0] == 3 and sys.version_info[1] >= 8 else "line_terminator"
 
 
 @add_error_reporting
@@ -309,6 +307,31 @@ class TestStream(TestCase):
 
     def test_str_startswith(self):
         self.assertEqual(stream(["abc", "def", "ghi"]).filter(it.startswith("a")).to_list(), ["abc"])
+
+    def test_filter_and_concat_naive(self):
+        self.assertEqual(stream(["A", "", None, "d"]).filter(exists).map(str.lower).join(","), "a,d")
+
+    def test_filter_and_concat_simpler(self):
+        self.assertEqual(stream(["A", "", None, "d"]).exists().lower().join(","), "a,d")
+
+    @mock_s3
+    def test_s3_csv_to_dict(self):
+        s3 = boto3.resource("s3")
+        bucket_name = "bucket-" + randoms.hex(10)
+        bucket = s3.create_bucket(Bucket=bucket_name)
+
+        content = "id,name\n1,Alice\n2,Bob"
+        bucket.put_object(Key='test.csv', Body=content)
+
+        result = (
+            from_s3(key="test.csv", bucket=bucket_name)
+            .content()
+            .utf8()
+            .csv()
+            .to_list()
+        )
+
+        self.assertEqual(result, [{"id": "1", "name": "Alice"}, {"id": "2", "name": "Bob"}])
 
 
 def length(value):
