@@ -72,7 +72,7 @@ class S3Object:
         self.obj = obj
 
     def content(self) -> ByteStream:
-        ByteStream(self.obj.get()['Body'])
+        return ByteStream(self.obj.get()['Body'])
 
 
 STR_CALL = CallableTyper(return_type=str)
