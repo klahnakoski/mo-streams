@@ -333,6 +333,16 @@ class TestStream(TestCase):
 
         self.assertEqual(result, [{"id": "1", "name": "Alice"}, {"id": "2", "name": "Bob"}])
 
+    def test_from_csv_w_map(self):
+        result = (
+            stream("id,name\n1,Alice\n2,Bob")
+            .csv()
+            .map(it['id'] + it['name'])
+            .to_list()
+        )
+
+        self.assertEqual(result, ["1Alice", "2Bob"])
+
 
 def length(value):
     return len(value)
