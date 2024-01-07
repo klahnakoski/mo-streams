@@ -42,6 +42,43 @@ class FunctionFactory:
         _set(self, "typer", typer)
         _set(self, "_desc", desc)
 
+    def __getitem__(self, item):
+        source = f"{self}[{item}]"
+
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            f, t, s = _get(self, "build")(domain_type, domain_schema)
+            if item in s:
+
+                def get_schema_item(v, a):
+                    try:
+                        return a[item]
+                    finally:
+                        DEBUG and logger.info("run {{source}}", source=source)
+
+                return BuiltFunction(get_schema_item, domain_schema[item], domain_schema)
+            elif isinstance(item, FunctionFactory):
+                fi, ti, si = _get(item, "build")(domain_type, domain_schema)
+
+                def get_func_item(v, a):
+                    try:
+                        return f(v, a)[fi(v, a)]
+                    finally:
+                        DEBUG and logger.info("run {{source}}", source=source)
+
+                return BuiltFunction(get_func_item, UnknownTyper(Exception("too complicated to know type")), s)
+            else:
+
+                def get_const_item(v, a):
+                    try:
+                        return f(v, a)[item]
+                    finally:
+                        DEBUG and logger.info("run {{source}}", source=source)
+
+                return BuiltFunction(get_const_item, t[item], s)
+
+        return FunctionFactory(builder, _get(self, "typer")[item], source)
+
+
     def __getattr__(self, item):
         source = f"{self}.{item}"
 
@@ -181,6 +218,21 @@ class FunctionFactory:
         type_ = Typer(example=other) + _get(self, "typer")
         return FunctionFactory(builder, type_, f"{other} - {self}")
 
+    def __add__(self, other):
+        func_other = factory(other)
+
+        def builder(domain_type, domain_schema) -> BuiltFunction:
+            sf, st, ss = self.build(domain_type, domain_schema)
+            of, ot, os = func_other.build(domain_type, domain_schema)
+
+            def func(v, a):
+                return sf(v, a) + of(v, a)
+
+            return BuiltFunction(func, st+ot, domain_schema)
+
+        type_ = _get(self, "typer") + _get(other, "typer")
+        return FunctionFactory(builder, type_, f"{self} + {other}")
+
     def __radd__(self, other):
         func_other = factory(other)
 
@@ -195,6 +247,8 @@ class FunctionFactory:
 
         type_ = Typer(example=other) + _get(self, "typer")
         return FunctionFactory(builder, type_, f"{other} + {self}")
+
+
 
     def __call__(self, *args, **kwargs):
         args = [factory(a) for a in args]

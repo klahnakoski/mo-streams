@@ -11,11 +11,11 @@ import sys
 
 from mo_imports import export
 
-from mo_json import JxType
+from mo_json import JxType, JX_TEXT
 from mo_streams._utils import Reader, Stream
 from mo_streams.byte_stream import ByteStream
 from mo_streams.object_stream import ObjectStream
-from mo_streams.type_utils import Typer
+from mo_streams.type_utils import Typer, JxTyper
 
 line_terminator = "lineterminator" if sys.version_info[0] == 3 and sys.version_info[1] >= 8 else "line_terminator"
 
@@ -35,11 +35,18 @@ class StringStream(Stream):
         return ByteStream(Reader((c.encode("utf8") for c in self._chunks)))
 
     def csv(self):
-        return ObjectStream(
-            ((rec, {}) for rec in csv.DictReader(r for r, _ in self.lines()._iter)),
-            Typer(python_type=dict),
-            JxType(),
-        )
+        lines_gen = (r for r, _ in self.lines()._iter)
+        reader = csv.DictReader(lines_gen)
+        column_names = reader.fieldnames
+        jx_type = JxType(**{n: str for n in column_names})
+        rec0 = next(reader)
+
+        def read():
+            yield rec0, {}
+            for rec in reader:
+                yield rec, {}
+
+        return ObjectStream(read(), JxTyper(jx_type), JxType())
 
     def lines(self):
         def read():
