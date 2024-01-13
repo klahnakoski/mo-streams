@@ -137,11 +137,15 @@ class StreamTyper(Typer):
     def sum(self):
         return CallableTyper(Typer(python_type=float))
 
+    @property
+    def count(self):
+        return CallableTyper(Typer(python_type=int))
+
     def __getattr__(self, item):
         spec = inspect.getmembers(ObjectStream)
         for k, m in spec:
             if k == item:
-                logger.error("add method to handle type inference for ObjectStream")
+                logger.error("add method (above) to handle type inference for ObjectStream.{item}", item=item)
 
         output = getattr(self.member_type, item)
         if isinstance(output, UnknownTyper):

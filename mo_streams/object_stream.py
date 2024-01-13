@@ -231,13 +231,19 @@ class ObjectStream(Stream):
 
         return ObjectStream(read(), self.typer, self._schema)
 
-    def group(self, groupor):
+    def group(self, groupor=None, **kwargs):
         """
         GROUP BY groupor EXPRESSION, RETURN A stream OF streams
         EACH GROUP HAS ATTACHED group PROPERTY WITH THE EXPRESSION VALUE
-        :param groupor:
-        :return:
+        :param groupor: function to extract group from row
+        :param kwargs: by default, "group" is attached with the value, use kwargs to choose the name
+        :return: stream of (streams for each group)
         """
+        if groupor is None and len(kwargs) == 1:
+            name, groupor = first(kwargs.items())
+        else:
+            name = "group"
+
         if isinstance(groupor, str):
             raw_group_function = lambda v: getattr(v, groupor)
         else:
@@ -247,7 +253,7 @@ class ObjectStream(Stream):
         func = group_factory.build(self.typer, self._schema).function
         group_function = lambda pair: func(*pair)
         group_schema = JxType()  # NOT A REAL TYPE, WE ADD PYTHON TYPES ON THE LEAVES
-        setattr(group_schema, "group", group_factory.typer)
+        setattr(group_schema, name, group_factory.typer)
         sub_schema = self._schema | group_schema
 
         def read():
@@ -255,10 +261,10 @@ class ObjectStream(Stream):
 
                 def read_rows():
                     for v, a in rows:
-                        yield v, {**a, "group": group}
+                        yield v, {**a, name: group}
 
                 # THIS IS A BAD IDEA, ObjectStream CAN GET EXPENSIVE IN A LOOP
-                yield ObjectStream(read_rows(), self.typer, sub_schema), {"group": group}
+                yield ObjectStream(read_rows(), self.typer, sub_schema), {name: group}
 
         return ObjectStream(read(), StreamTyper(self.typer, sub_schema), group_schema)
 
