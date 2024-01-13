@@ -343,6 +343,46 @@ class TestStream(TestCase):
 
         self.assertEqual(result, ["1Alice", "2Bob"])
 
+    def test_count_values_and_sort(self):
+        values = [
+            "apple",
+            "pear",
+            "apple",
+            "orange",
+            "pear",
+            "apple"
+        ]
+
+        counts = (
+            stream(values)
+            .group(key=it)
+            .map(it.count())
+            .sort(reverse=True)
+            .map(lambda v, att: {att["key"]: v})
+            .to_list()
+        )
+
+        self.assertEqual(counts, [{"apple": 3}, {"pear": 2}, {"orange": 1}])
+
+    def test_count_values_and_sort2(self):
+        values = [
+            "apple",
+            "pear",
+            "apple",
+            "orange",
+            "pear",
+            "apple"
+        ]
+
+        counts = (
+            stream(values)
+            .group(key=it)
+            .map(it.count())
+            .to_dict()
+        )
+
+        self.assertEqual(counts, {"apple": 3, "pear": 2, "orange": 1})
+
 
 def length(value):
     return len(value)
