@@ -2,7 +2,7 @@ mo-files
 mo-logs
 zstandard
 boto3
-moto
+moto>=4.2.14,<5
 pandas
 mo-threads
 mo-testing>=7
