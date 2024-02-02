@@ -24,8 +24,8 @@ mo-testing==7.454.23305
 mo-threads==6.453.23305
 mo-times==5.522.24033
 moto==4.2.14
-numpy==1.26.3
-pandas==2.2.0
+numpy==1.24.4
+pandas==2.0.3
 pip==23.3.2
 pycparser==2.21
 python-dateutil==2.8.2
