@@ -9,7 +9,7 @@ env:
 install:
 - pip install coverage
 - pip install coveralls
-- # too long on python3.10
+- null
 - grep -v 'pandas' tests/requirements.txt | pip install -r /dev/stdin
 - cp packaging/setup.py .
 - pip install .
