@@ -1,8 +1,8 @@
-mo-files
-mo-logs
 zstandard
 boto3
 moto>=4.2.14,<5
 pandas
-mo-threads
-mo-testing>=7
+mo-files>=6.527.24034
+mo-logs>=8.527.24034
+mo-testing>=7.523.24033
+mo-threads>=6.522.24033
