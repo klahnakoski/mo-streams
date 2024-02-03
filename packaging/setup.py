@@ -6,7 +6,7 @@ setup(
     author_email='kyle@lahnakoski.com',
     classifiers=["Development Status :: 3 - Alpha","Topic :: Software Development :: Libraries","Topic :: Software Development :: Libraries :: Python Modules","License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)","Programming Language :: Python :: 3.8","Programming Language :: Python :: 3.9","Programming Language :: Python :: 3.10","Programming Language :: Python :: 3.11","Programming Language :: Python :: 3.12"],
     description='More Streams! Chained function calls',
-    extras_require={"tests":["zstandard","boto3","moto>=4.2.14","pandas","mo-files>=6.527.24034","mo-logs>=8.527.24034","mo-testing>=7.523.24033","mo-threads>=6.522.24033"]},
+    extras_require={"tests":["zstandard","boto3","moto>=4.2.14","pandas","mo-files","mo-logs","mo-testing","mo-threads>=6.522.24033"]},
     include_package_data=True,
     install_requires=["mo-dots==9.527.24034","mo-files==6.527.24034","mo-future==7.520.24032","mo-json==6.527.24034"],
     license='MPL 2.0',
