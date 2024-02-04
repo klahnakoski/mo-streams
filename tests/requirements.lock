@@ -1,4 +1,4 @@
-# Tests pass with these versions 2024-02-03
+# Tests pass with these versions 2024-02-04
 boto3==1.34.34
 botocore==1.34.34
 certifi==2024.2.2
