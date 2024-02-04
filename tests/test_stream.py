@@ -18,7 +18,6 @@ from mo_testing.fuzzytestcase import add_error_reporting
 from mo_threads import start_main_thread, stop_main_thread
 from mo_times import Date, YEAR
 from moto import mock_s3
-from pandas import DataFrame
 
 from mo_json import json2value
 from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream, from_s3
@@ -132,7 +131,10 @@ class TestStream(TestCase):
         result = stream(range(10)).limit(10).to_list()
         self.assertEqual(result, list(range(10)))
 
+    @skipIf(IS_TRAVIS, "pandas too hard for travis")
     def test_to_zip2(self):
+        from pandas import DataFrame
+
         result = (
             stream({"data": [{"a": 1, "b": 2}]})
             .map(DataFrame)
@@ -144,8 +146,11 @@ class TestStream(TestCase):
             .write("tests/resources/test_to_zip.zip")
         )
 
+    @skipIf(IS_TRAVIS, "pandas too hard for travis")
     @mock_s3
     def test_zip_to_s3(self):
+        from pandas import DataFrame
+
         s3 = boto3.resource("s3")
         bucket_name = "bucket-" + randoms.hex(10)
         bucket = s3.create_bucket(Bucket=bucket_name)

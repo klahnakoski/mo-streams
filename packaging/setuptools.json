@@ -14,13 +14,14 @@
     ],
     "description": "More Streams! Chained function calls",
     "extras_require": {"tests": [
-             "mo-files",       "mo-logs",     "zstandard",         "boto3",
-         "moto>=4.2.14",        "pandas",    "mo-threads", "mo-testing>=7"
+          "mo-files>=6.522.24033",    "mo-logs>=8.522.24033",       "zstandard>=0.22.0",
+                 "boto3>=1.34.34",            "moto>=4.2.14",           "pandas>=2.0.3",
+        "mo-threads>=6.522.24033", "mo-testing>=7.523.24033", "mo-threads>=6.522.24033"
     ]},
     "include_package_data": true,
     "install_requires": [
-          "mo-dots==9.520.24032",  "mo-files==6.522.24033", "mo-future==7.520.24032",
-          "mo-json==6.522.24033"
+          "mo-dots==9.527.24034",  "mo-files==6.527.24034", "mo-future==7.520.24032",
+          "mo-json==6.527.24034"
     ],
     "license": "MPL 2.0",
     "long_description": {
@@ -99,6 +100,6 @@
     "name": "mo-streams",
     "packages": ["mo_streams"],
     "url": "https://github.com/klahnakoski/mo-streams",
-    "version": "1.522.24033",
+    "version": "1.529.24035",
     "zip_safe": false
 }
