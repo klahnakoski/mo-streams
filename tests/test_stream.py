@@ -388,6 +388,13 @@ class TestStream(TestCase):
 
         self.assertEqual(counts, {"apple": 3, "pear": 2, "orange": 1})
 
+    def test_use_a_function(self):
+        def add_1(values, att) -> int:
+            return sum(v['a'] for v in values.to_list())
+
+        result = stream([{"a":1}, {"a":2}, {"a":3}]).group(mode=it['a']%2).map(add_1).to_list()
+        self.assertEqual(result, [2, 4])
+
 
 def length(value):
     return len(value)
