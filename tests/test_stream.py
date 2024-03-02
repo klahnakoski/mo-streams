@@ -25,7 +25,7 @@ from mo_streams._utils import Writer
 from mo_streams.files import File_usingStream
 from mo_streams.string_stream import line_terminator
 
-IS_TRAVIS = bool(os.environ.get("TRAVIS"))
+IS_CI = bool(os.environ.get("CI"))
 
 
 @add_error_reporting
@@ -52,7 +52,7 @@ class TestStream(TestCase):
         result = file.content().utf8().to_str()
         self.assertEqual(result, "this is a test")
 
-    @skipIf(IS_TRAVIS, "file not repo")
+    @skipIf(IS_CI, "file not repo")
     def test_tar(self):
         file = File("tests/resources/so_queries.tar.zst")
         content = file.content().content().exists().utf8().to_str().to_list()
@@ -131,7 +131,7 @@ class TestStream(TestCase):
         result = stream(range(10)).limit(10).to_list()
         self.assertEqual(result, list(range(10)))
 
-    @skipIf(IS_TRAVIS, "pandas too hard for travis")
+    @skipIf(IS_CI, "pandas too hard for travis")
     def test_to_zip2(self):
         from pandas import DataFrame
 
@@ -146,7 +146,7 @@ class TestStream(TestCase):
             .write("tests/resources/test_to_zip.zip")
         )
 
-    @skipIf(IS_TRAVIS, "pandas too hard for travis")
+    @skipIf(IS_CI, "pandas too hard for travis")
     @mock_s3
     def test_zip_to_s3(self):
         from pandas import DataFrame
