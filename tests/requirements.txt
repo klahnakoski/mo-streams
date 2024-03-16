@@ -1,9 +1,9 @@
-mo-files>=6.522.24033
-mo-logs>=8.522.24033
+mo-files>=6.562.24075
+mo-logs>=8.562.24075
 zstandard>=0.22.0
-boto3>=1.34.59
+boto3>=1.34.64
 moto>=4.2.14,<5
 pandas>=2.0.3
-mo-threads>=6.522.24033
-mo-testing>=7.523.24033
-mo-threads>=6.522.24033
+mo-threads>=6.562.24075
+mo-testing>=7.562.24075
+mo-threads>=6.562.24075
