@@ -1,4 +1,4 @@
-# Tests pass with these versions 2024-04-20
+# Tests pass with these versions 2024-04-23
 # pip install --no-deps -r tests/requirements.lock
 boto3==1.34.88
 botocore==1.34.88
@@ -12,17 +12,17 @@ Jinja2==3.1.3
 jmespath==1.0.1
 MarkupSafe==2.1.5
 mo-collections==5.584.24095
-mo-dots==9.584.24095
-mo-files==6.589.24111
+mo-dots==9.600.24114
+mo-files==6.600.24114
 mo-future==7.584.24095
 mo-imports==7.584.24095
-mo-json==6.589.24111
-mo-kwargs==7.584.24095
-mo-logs==8.584.24095
-mo-math==7.589.24111
-mo-testing==8.589.24111
+mo-json==6.600.24114
+mo-kwargs==7.600.24114
+mo-logs==8.600.24114
+mo-math==7.600.24114
+mo-testing==8.591.24112
 mo-threads==6.589.24111
-mo-times==5.589.24111
+mo-times==5.600.24114
 moto==4.2.14
 numpy==1.24.4
 pandas==2.0.3
