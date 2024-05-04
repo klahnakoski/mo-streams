@@ -6,7 +6,7 @@ setup(
     author_email='kyle@lahnakoski.com',
     classifiers=["Development Status :: 3 - Alpha","Topic :: Software Development :: Libraries","Topic :: Software Development :: Libraries :: Python Modules","License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)","Programming Language :: Python :: 3.8","Programming Language :: Python :: 3.9","Programming Language :: Python :: 3.10","Programming Language :: Python :: 3.11","Programming Language :: Python :: 3.12"],
     description='More Streams! Chained function calls',
-    extras_require={"tests":["mo-files>=6.609.24119","mo-logs>=8.608.24119","zstandard>=0.22.0","boto3>=1.34.98","moto>=4.2.14","pandas>=2.0.3","mo-threads>=6.610.24119","mo-testing>=8.610.24119","mo-threads>=6.610.24119"]},
+    extras_require={"tests":["mo-files>=6.624.24125","mo-logs>=8.623.24125","zstandard>=0.22.0","boto3>=1.34.98","moto>=4.2.14","pandas>=2.0.3","mo-threads>=6.623.24125","mo-testing>=8.623.24125","mo-threads>=6.623.24125"]},
     include_package_data=True,
     install_requires=["mo-dots==10.623.24125","mo-files==6.624.24125","mo-future==7.584.24095","mo-json==6.624.24125"],
     license='MPL 2.0',
@@ -15,6 +15,6 @@ setup(
     name='mo-streams',
     packages=["mo_streams"],
     url='https://github.com/klahnakoski/mo-streams',
-    version='1.624.24125',
+    version='1.625.24125',
     zip_safe=False
 )
