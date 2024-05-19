@@ -20,8 +20,8 @@
     ]},
     "include_package_data": true,
     "install_requires": [
-         "mo-dots==10.623.24125",  "mo-files==6.624.24125", "mo-future==7.584.24095",
-          "mo-json==6.624.24125"
+         "mo-dots==10.632.24139",  "mo-files==6.638.24140", "mo-future==7.584.24095",
+          "mo-json==6.637.24140"
     ],
     "license": "MPL 2.0",
     "long_description": {
@@ -100,6 +100,6 @@
     "name": "mo-streams",
     "packages": ["mo_streams"],
     "url": "https://github.com/klahnakoski/mo-streams",
-    "version": "1.625.24125",
+    "version": "1.638.24140",
     "zip_safe": false
 }
