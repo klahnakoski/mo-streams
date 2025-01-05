@@ -26,7 +26,7 @@ The last example shows how we must convert a function (`sum`) into a FunctionFac
 `it` is a function that can convert objects into function factories so they may 
 be further composed.  
 
-## Using `it` for annotation access 
+## Using `it` for attachment access 
 
 The `map` function will accept FunctionFactories, which can be used to access the
 attachments in a stream:
@@ -35,4 +35,4 @@ attachments in a stream:
     .attach(key="example " + it)
     .map(it.key)
     
-Note that `.map(lambda x: x.key)` will fail because integers do not have a `key` attribute
+Note that `.map(lambda x: x.key)` will fail because integers do not have a `key` attribute, while `it` will use attachments.
