@@ -10,18 +10,19 @@
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12"
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13"
     ],
     "description": "More Streams! Chained function calls",
     "extras_require": {"tests": [
           "mo-files>=6.638.24140",    "mo-logs>=8.632.24139",       "zstandard>=0.22.0",
-                "boto3>=1.34.108",            "moto>=4.2.14",           "pandas>=2.0.3",
-        "mo-threads>=6.634.24139", "mo-testing>=8.633.24139", "mo-threads>=6.634.24139"
+                "boto3>=1.34.126",            "moto>=4.2.14",           "pandas>=2.0.3",
+        "mo-threads>=6.634.24139", "mo-testing>=8.644.24152", "mo-threads>=6.634.24139"
     ]},
     "include_package_data": true,
     "install_requires": [
-         "mo-dots==10.647.24166",  "mo-files==6.647.24166", "mo-future==7.584.24095",
-          "mo-json==6.647.24166"
+         "mo-dots==10.659.25005",  "mo-files==6.668.25032", "mo-future==7.584.24095",
+          "mo-json==6.667.25032"
     ],
     "license": "MPL 2.0",
     "long_description": {
@@ -31,7 +32,7 @@
             "[![PyPI Latest Release](https://img.shields.io/pypi/v/mo-streams.svg)](https://pypi.org/project/mo-streams/)",
             " [![Build Status](https://github.com/klahnakoski/mo-streams/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/klahnakoski/mo-streams/actions/workflows/build.yml)",
             " [![Coverage Status](https://coveralls.io/repos/github/klahnakoski/mo-streams/badge.svg?branch=dev)](https://coveralls.io/github/klahnakoski/mo-streams?branch=dev)",
-            "[![Downloads](https://pepy.tech/badge/mo-streams/month)](https://pepy.tech/project/mo-streams)",
+            "[![Downloads](https://static.pepy.tech/badge/mo-streams/month)](https://pepy.tech/project/mo-streams)",
             "",
             "",
             "Python code is more elegant with method chaining!",
@@ -100,6 +101,6 @@
     "name": "mo-streams",
     "packages": ["mo_streams"],
     "url": "https://github.com/klahnakoski/mo-streams",
-    "version": "1.647.24166",
+    "version": "1.668.25032",
     "zip_safe": false
 }
