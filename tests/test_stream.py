@@ -17,7 +17,7 @@ from mo_math import randoms
 from mo_testing.fuzzytestcase import add_error_reporting
 from mo_threads import start_main_thread, stop_main_thread
 from mo_times import Date, YEAR
-from moto import mock_s3
+from moto import mock_aws
 
 from mo_json import json2value
 from mo_streams import stream, it, ANNOTATIONS, Typer, EmptyStream, from_s3
@@ -147,7 +147,7 @@ class TestStream(TestCase):
         )
 
     @skipIf(IS_CI, "pandas too hard for travis")
-    @mock_s3
+    @mock_aws
     def test_zip_to_s3(self):
         from pandas import DataFrame
 
@@ -319,7 +319,7 @@ class TestStream(TestCase):
     def test_filter_and_concat_simpler(self):
         self.assertEqual(stream(["A", "", None, "d"]).exists().lower().join(","), "a,d")
 
-    @mock_s3
+    @mock_aws
     def test_s3_csv_to_dict(self):
         s3 = boto3.resource("s3")
         bucket_name = "bucket-" + randoms.hex(10)
