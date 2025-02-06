@@ -1,7 +1,7 @@
-# Tests pass with python 3.8 on 2025-02-02 and with these versions
+# Tests pass with python 3.8 on 2025-02-06 and with these versions
 # pip install --no-deps -r tests/requirements.lock
-boto3==1.36.11
-botocore==1.36.11
+boto3==1.36.14
+botocore==1.36.14
 certifi==2025.1.31
 cffi==1.17.1
 charset-normalizer==3.4.1
@@ -11,18 +11,18 @@ idna==3.10
 Jinja2==3.1.5
 jmespath==1.0.1
 MarkupSafe==2.1.5
-mo-dots==10.659.25005
-mo-files==6.668.25032
-mo-future==7.584.24095
-mo-imports==7.584.24095
-mo-json==6.667.25032
-mo-kwargs==7.659.25005
-mo-logs==8.667.25032
-mo-math==7.659.25005
+mo-dots==10.672.25036
+mo-files==6.672.25036
+mo-future==7.672.25036
+mo-imports==7.672.25036
+mo-json==6.672.25036
+mo-kwargs==7.672.25036
+mo-logs==8.672.25036
+mo-math==7.672.25036
 mo-testing==8.667.25032
-mo-threads==6.668.25032
-mo-times==5.667.25032
-moto==5.0.27
+mo-threads==6.672.25036
+mo-times==5.672.25036
+moto==5.0.28
 numpy  # 1.24.4 version locking causes:  No module named 'distutils'
 pandas  # 2.0.3 version locking causes:  Could not build wheels for pandas
 pycparser==2.22
