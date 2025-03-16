@@ -1,7 +1,7 @@
-# Tests pass with python 3.8 on 2025-03-03 and with these versions
+# Tests pass with python 3.8 on 2025-03-16 and with these versions
 # pip install --no-deps -r tests/requirements.lock
-boto3==1.37.4
-botocore==1.37.4
+boto3==1.37.13
+botocore==1.37.13
 certifi==2025.1.31
 cffi==1.17.1
 charset-normalizer==3.4.1
@@ -12,7 +12,7 @@ Jinja2==3.1.5
 jmespath==1.0.1
 MarkupSafe==2.1.5
 mo-dots==10.678.25061
-mo-files==6.679.25061
+mo-files==6.681.25075
 mo-future==7.678.25061
 mo-imports==7.678.25061
 mo-json==6.679.25061
@@ -20,7 +20,7 @@ mo-kwargs==7.678.25061
 mo-logs==8.678.25061
 mo-math==7.678.25061
 mo-testing==8.674.25037
-mo-threads==6.679.25061
+mo-threads==6.681.25075
 mo-times==5.678.25061
 moto==5.0.28
 numpy  # 1.24.4 version locking causes:  No module named 'distutils'
